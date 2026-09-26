@@ -94,7 +94,7 @@
     <div id="hud-panel">Holding: None</div>
     <button id="back-to-menu" onclick="exitWorld()">Disconnect</button>
     <script>
-        // CAŁKOWICIE NORMALNE FUNKCJE GLOBALNE - HTML CZYTA JE NATYCHMIAST
+        // Te zmienne i funkcje są niezależne od bibliotek 3D, HTML uruchamia je od razu
         let currentPlayer = "Guest";
         let serverAdmins = ["alex", "notch"];
         let currentWorldIndex = 0;
@@ -140,42 +140,6 @@
         }
         window.addEventListener('DOMContentLoaded', sprawdzCiasteczkaKonta);
     </script>
-
-    <script type="importmap">
-        {
-            "imports": {
-                "three": "https://unpkg.com",
-                "three/addons/": "https://unpkg.com"
-            }
-        }
-    </script>
-    <script type="module">
-        import * as THREE from 'three';
-        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-
-        window.worldsData = [
-            {
-                worldname: "hello!",
-                blocks: [
-                    { x: 0, y: 0, z: 0, block: "Dirt", nbt: {} },
-                    { x: 1, y: 0, z: 0, block: "Dirt", nbt: {} },
-                    { x: 0, y: 1, z: 0, block: "TNT", nbt: {} }
-                ],
-                owner: "matwindow",
-                players: [],
-                ranks: [{ name: "matwindow", displayrank: "👑Owner👑", rank: "owner", rankcolor: "red", extra: { bold: true, italic: false, underline: false } }]
-            }
-        ];
-
-        const BLOCK_TYPES = { TNT: new THREE.MeshLambertMaterial({ color: 0xcc3333 }), Dirt: new THREE.MeshLambertMaterial({ color: 0x866043 }), Air: null, Default: new THREE.MeshLambertMaterial({ color: 0x777777 }) };
-        const blockGeometry = new THREE.BoxGeometry(1, 1, 1);
-        window.renderedMeshes = [];
-        window.raycaster = new THREE.Raycaster();
-        window.mouseVector = new THREE.Vector2();
-        window.fpsCounter = 0; window.lastFpsTime = 0; window.currentFpsDisplayValue = 0;
-        window.cpsCounter = 0; window.lastCpsResetTime = 0;
-        window.isEngineInitialized = false;
-
         window.loadDashboardProfileSetup = function() {
             if(currentPlayer === "matwindow") { document.getElementById('owner-settings-wrapper').style.display = 'block'; }
             document.getElementById('set-pass').value = localStorage.getItem('matcrafter_pass') || '';
@@ -297,7 +261,6 @@
                 if (activeSlot) hud.innerHTML = 'Slot ' + (activeSlot.slot + 1) + ': <span class="active-slot-glow">' + activeSlot.item + '</span>';
             }
         };
-
         window.renderWorldBlocks = function() {
             window.renderedMeshes.forEach(mesh => window.sceneInstance.remove(mesh));
             window.renderedMeshes = [];
@@ -322,6 +285,7 @@
                 }
             });
         };
+
         window.initEngine = function() {
             window.sceneInstance = new THREE.Scene(); window.sceneInstance.background = new THREE.Color(0x87CEEB);
             window.sceneCamera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
