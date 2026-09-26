@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matcrafter - Chmura i Serwery</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #87CEEB; font-family: sans-serif; }
+        canvas { display: block; width: 100vw; height: 100vh; }
+        /* Panel gracza i rangi w lewym górnym rogu */
+        #ui-panel {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            pointer-events: none; /* Kliknięcia przechodzą do gry */
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ui-panel">
+        <div id="player-rank">Wczytywanie gracza...</div>
+        <div id="world-info">Aktywny świat: brak</div>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com",
+                "three/addons/": "https://unpkg.com"
+            }
+        }
+    </script>
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // --- TWOJA STRUKTURA BAZY ŚWIATÓW (DOKŁADNIE TAKA JAK CHCIAŁEŚ) ---
+        window.worldsData = [{
+            worldname: "hello!",
+            blocks: [
+                { x: 0, y: 0, z: 0, block: "Dirt", nbt: {} },
+                { x: 1, y: 0, z: 0, block: "Dirt", nbt: {} },
+                { x: 0, y: 1, z: 0, block: "TNT", nbt: {} }
+            ],
+            owner: "matwindow",
+            players: ["matwindow"],
+            ranks: [{
+                name: "matwindow",
+                displayrank: "👑Owner👑",
+                rank: "owner",
+                rankcolor: "red",
+                extra: { bold: true, italic: false, underline: false }
+            }]
+        }];
+
+        // Definicje kolorów dla Twoich bloków
+        const BLOCK_TYPES = {
+            TNT: new THREE.MeshLambertMaterial({ color: 0xcc3333 }),
+            Dirt: new THREE.MeshLambertMaterial({ color: 0x866043 }),
+            Default: new THREE.MeshLambertMaterial({ color: 0x777777 })
+        };
+
+        const blockGeometry = new THREE.BoxGeometry(1, 1, 1);
+        let renderedMeshes = [];
+
+        window.game = {
+            scene: null, camera: null, renderer: null, controls: null,
+            currentWorldIndex: 0,
+            currentPlayer: "matwindow",
+
+            // Renderowanie na podstawie struktury worldsData
+            render: function() {
+                // Czyszczenie starego świata
+                renderedMeshes.forEach(mesh => this.scene.remove(mesh));
+                renderedMeshes = [];
+
+                // Pobieramy aktualnie włączony świat z naszej tablicy
+                const activeWorld = window.worldsData[this.currentWorldIndex];
+                
+                if (!activeWorld) return;
+
+                // Aktualizujemy napisy na ekranie (UI)
+                document.getElementById('world-info').innerText = `Aktywny świat: ${activeWorld.worldname} (Właściciel: ${activeWorld.owner})`;
+                
+                // Szukamy rangi dla obecnego gracza
+                const playerRankInfo = activeWorld.ranks.find(r => r.name === this.currentPlayer);
+                if (playerRankInfo) {
+                    const rankElement = document.getElementById('player-rank');
+                    rankElement.innerText = `Gracz: ${playerRankInfo.name} [${playerRankInfo.displayrank}]`;
+                    rankElement.style.color = playerRankInfo.rankcolor;
+                    if (playerRankInfo.extra.bold) rankElement.style.fontWeight = 'bold';
+                }
+
+                // Budowanie klocków świata 3D
+                activeWorld.blocks.forEach(b => {
+                    const material = BLOCK_TYPES[b.block] || BLOCK_TYPES.Default;
+                    const mesh = new THREE.Mesh(blockGeometry, material);
+                    mesh.position.set(b.x, b.y, b.z);
+                    this.scene.add(mesh);
+                    renderedMeshes.push(mesh);
+                });
+            },
+
+            init: function() {
+                this.scene = new THREE.Scene();
+                this.scene.background = new THREE.Color(0x87CEEB);
+
+                this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                this.camera.position.set(3, 5, 8);
+
+                this.renderer = new THREE.WebGLRenderer({ antialias: true });
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                document.body.appendChild(this.renderer.domElement);
+
+                this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+                this.controls.enableDamping = true;
+                this.controls.dampingFactor = 0.05;
+
+                const sunLight = new THREE.DirectionalLight(0xffffff, 1.2);
+                sunLight.position.set(10, 20, 15);
+                this.scene.add(sunLight);
+
+                const ambientLight = new THREE.AmbientLight(0x666666);
+                this.scene.add(ambientLight);
+
+                // Pierwsze wyrenderowanie świata
+                this.render();
+
+                const animate = () => {
+                    requestAnimationFrame(animate);
+                    this.controls.update();
+                    this.renderer.render(this.scene, this.camera);
+                };
+                animate();
+            }
+        };
+
+        game.init();
+
+        window.addEventListener('resize', () => {
+            game.camera.aspect = window.innerWidth / window.innerHeight;
+            game.camera.updateProjectionMatrix();
+            game.renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
