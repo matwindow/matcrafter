@@ -62,42 +62,8 @@
                 <button class="btn-create" onclick="window.game.createNewWorld()">Create New World</button>
                 <div id="worlds-list"></div>
             </div>
-            <div id="settings-tab" class="tab-content">
-                <h1 style="margin-top: 0;">Settings</h1>
-                <div class="setting-row"><span>Show FPS</span><input type="checkbox" id="set-fps" checked onchange="window.game.saveSettings()"></div>
-                <div class="setting-row"><span>Show TPS</span><input type="checkbox" id="set-tps" checked onchange="window.game.saveSettings()"></div>
-                <div class="setting-row"><span>Show Ping</span><input type="checkbox" id="set-ping" checked onchange="window.game.saveSettings()"></div>
-                <div class="setting-row"><span>Show CPS</span><input type="checkbox" id="set-cps" checked onchange="window.game.saveSettings()"></div>
-                <div class="setting-row"><span>Change Password</span><input type="password" id="set-pass" placeholder="New Password" onchange="window.game.saveSettings()"></div>
-                
-                <div id="owner-settings-wrapper" style="display: none; margin-top: 30px; border-top: 2px solid #222; padding-top: 20px;">
-                    <h2 style="color: red; margin-top: 0;">Owner Settings (Admin Control)</h2>
-                    <div style="background: #111; padding: 20px; border-radius: 6px; border: 1px solid #222; max-width: 400px;">
-                        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                            <input type="text" id="admin-input" placeholder="Admin Name" style="background:#222; border:1px solid #444; color:white; padding:8px; border-radius:4px; flex-grow:1; outline:none;">
-                            <button onclick="window.game.addAdminUser()" style="background:#2e8b57; color:white; border:none; padding:8px 15px; border-radius:4px; cursor:pointer; font-weight:bold;">Add</button>
-                        </div>
-                        <div id="admin-list-box"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div id="ui-panel">
-        <div id="player-rank"></div>
-        <div id="world-info"></div>
-    </div>
-    <div id="metrics-panel"></div>
-    <div id="chat-container"><div id="chat-log"></div><input type="text" id="chat-input" placeholder="Press Enter to type..."></div>
-    <div id="crosshair"></div>
-    <div id="hud-panel">Holding: None</div>
-    <button id="back-to-menu" onclick="window.game.exitWorld()">Disconnect</button>
     <script>
-        window.game = {
-            currentPlayer: "Guest",
-            serverAdmins: ["alex", "notch"]
-        };
+        window.game = { currentPlayer: "Guest", serverAdmins: ["alex", "notch"] };
 
         function sprawdzCiasteczkaKonta() {
             const storedUser = localStorage.getItem('matcrafter_user');
@@ -136,8 +102,8 @@
     <script type="importmap">
         {
             "imports": {
-                "three": "https://unpkg.com",
-                "three/addons/": "https://unpkg.com"
+                "three": "https://jsdelivr.net",
+                "three/addons/": "https://jsdelivr.net"
             }
         }
     </script>
@@ -274,7 +240,7 @@
                 document.getElementById('hud-panel').style.display = 'none';
                 document.getElementById('metrics-panel').style.display = 'none';
                 document.getElementById('back-to-menu').style.display = 'none';
-                document.querySelector('canvas').style.none = 'none';
+                document.querySelector('canvas').style.display = 'none';
                 this.updateWorldsUI();
             },
             updateHUDDisplay: function() {
