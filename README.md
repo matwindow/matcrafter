@@ -1,2 +1,1 @@
-# matcrafter
-Matcrafter is a clone of minecraft, so orginal by mojang!
+Hello! This is a minecraft clone
