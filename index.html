@@ -117,10 +117,8 @@
             const userField = document.getElementById('auth-user').value.trim();
             const passField = document.getElementById('auth-pass').value.trim();
             if (!userField || !passField) return alert("Fill in fields!");
-
             const storedUser = localStorage.getItem('matcrafter_user');
             const storedPass = localStorage.getItem('matcrafter_pass');
-
             if (!storedUser) {
                 localStorage.setItem('matcrafter_user', userField);
                 localStorage.setItem('matcrafter_pass', passField);
@@ -130,12 +128,8 @@
                 window.game.currentPlayer = storedUser;
             }
             document.getElementById('auth-screen').style.display = 'none';
-            
-            if (window.game.loadDashboardProfileSetup) {
-                window.game.loadDashboardProfileSetup();
-            }
+            if (window.game.loadDashboardProfileSetup) { window.game.loadDashboardProfileSetup(); }
         }
-
         window.addEventListener('DOMContentLoaded', sprawdzCiasteczkaKonta);
     </script>
 
@@ -170,7 +164,6 @@
         window.renderedMeshes = [];
         window.raycaster = new THREE.Raycaster();
         window.mouseVector = new THREE.Vector2();
-
         window.fpsCounter = 0; window.lastFpsTime = 0; window.currentFpsDisplayValue = 0;
         window.cpsCounter = 0; window.lastCpsResetTime = 0;
         Object.assign(window.game, {
@@ -281,7 +274,7 @@
                 document.getElementById('hud-panel').style.display = 'none';
                 document.getElementById('metrics-panel').style.display = 'none';
                 document.getElementById('back-to-menu').style.display = 'none';
-                document.querySelector('canvas').style.display = 'none';
+                document.querySelector('canvas').style.none = 'none';
                 this.updateWorldsUI();
             },
             updateHUDDisplay: function() {
@@ -306,7 +299,7 @@
                     rankElement.textContent = 'Player: ' + playerRankInfo.name + ' [' + playerRankInfo.displayrank + ']';
                     rankElement.style.color = playerRankInfo.rankcolor; rankElement.style.fontWeight = playerRankInfo.extra.bold ? 'bold' : 'normal';
                 } else {
-                    rankElement.textContent = 'Player: ' + this.currentPlayer + ' [Member];';
+                    rankElement.textContent = 'Player: ' + this.currentPlayer + ' [Member]';
                     rankElement.style.color = '#ffffff'; rankElement.style.fontWeight = 'normal';
                 }
                 activeWorld.blocks.forEach(b => {
@@ -318,7 +311,7 @@
                     }
                 });
             },
-initEngine: function() {
+            initEngine: function() {
                 this.scene = new THREE.Scene(); this.scene.background = new THREE.Color(0x87CEEB);
                 this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
                 this.renderer = new THREE.WebGLRenderer({ antialias: true }); this.renderer.setSize(window.innerWidth, window.innerHeight);
