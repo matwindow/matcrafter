@@ -47,35 +47,35 @@
             <h2 id="auth-title">Create Account</h2>
             <input type="text" id="auth-user" placeholder="Username">
             <input type="password" id="auth-pass" placeholder="Password">
-            <button id="auth-btn" onclick="game.handleAuthSubmit()">Submit</button>
+            <button id="auth-btn" onclick="window.game.handleAuthSubmit()">Submit</button>
         </div>
     </div>
 
     <div id="main-menu">
         <div id="sidebar">
-            <button class="sidebar-btn active" onclick="game.switchTab('worlds-tab', this)">Worlds</button>
-            <button class="sidebar-btn" onclick="game.switchTab('settings-tab', this)">Settings</button>
+            <button class="sidebar-btn active" onclick="window.game.switchTab('worlds-tab', this)">Worlds</button>
+            <button class="sidebar-btn" onclick="window.game.switchTab('settings-tab', this)">Settings</button>
         </div>
         <div id="content-area">
             <div id="worlds-tab" class="tab-content active">
                 <h1 style="margin-top: 0;">Server Worlds</h1>
-                <button class="btn-create" onclick="game.createNewWorld()">Create New World</button>
+                <button class="btn-create" onclick="window.game.createNewWorld()">Create New World</button>
                 <div id="worlds-list"></div>
             </div>
             <div id="settings-tab" class="tab-content">
                 <h1 style="margin-top: 0;">Settings</h1>
-                <div class="setting-row"><span>Show FPS</span><input type="checkbox" id="set-fps" checked onchange="game.saveSettings()"></div>
-                <div class="setting-row"><span>Show TPS</span><input type="checkbox" id="set-tps" checked onchange="game.saveSettings()"></div>
-                <div class="setting-row"><span>Show Ping</span><input type="checkbox" id="set-ping" checked onchange="game.saveSettings()"></div>
-                <div class="setting-row"><span>Show CPS</span><input type="checkbox" id="set-cps" checked onchange="game.saveSettings()"></div>
-                <div class="setting-row"><span>Change Password</span><input type="password" id="set-pass" placeholder="New Password" onchange="game.saveSettings()"></div>
+                <div class="setting-row"><span>Show FPS</span><input type="checkbox" id="set-fps" checked onchange="window.game.saveSettings()"></div>
+                <div class="setting-row"><span>Show TPS</span><input type="checkbox" id="set-tps" checked onchange="window.game.saveSettings()"></div>
+                <div class="setting-row"><span>Show Ping</span><input type="checkbox" id="set-ping" checked onchange="window.game.saveSettings()"></div>
+                <div class="setting-row"><span>Show CPS</span><input type="checkbox" id="set-cps" checked onchange="window.game.saveSettings()"></div>
+                <div class="setting-row"><span>Change Password</span><input type="password" id="set-pass" placeholder="New Password" onchange="window.game.saveSettings()"></div>
                 
                 <div id="owner-settings-wrapper" style="display: none; margin-top: 30px; border-top: 2px solid #222; padding-top: 20px;">
                     <h2 style="color: red; margin-top: 0;">Owner Settings (Admin Control)</h2>
                     <div style="background: #111; padding: 20px; border-radius: 6px; border: 1px solid #222; max-width: 400px;">
                         <div style="display: flex; gap: 10px; margin-bottom: 15px;">
                             <input type="text" id="admin-input" placeholder="Admin Name" style="background:#222; border:1px solid #444; color:white; padding:8px; border-radius:4px; flex-grow:1; outline:none;">
-                            <button onclick="game.addAdminUser()" style="background:#2e8b57; color:white; border:none; padding:8px 15px; border-radius:4px; cursor:pointer; font-weight:bold;">Add</button>
+                            <button onclick="window.game.addAdminUser()" style="background:#2e8b57; color:white; border:none; padding:8px 15px; border-radius:4px; cursor:pointer; font-weight:bold;">Add</button>
                         </div>
                         <div id="admin-list-box"></div>
                     </div>
@@ -91,19 +91,21 @@
     <div id="chat-container"><div id="chat-log"></div><input type="text" id="chat-input" placeholder="Press Enter to type..."></div>
     <div id="crosshair"></div>
     <div id="hud-panel">Holding: None</div>
-    <button id="back-to-menu" onclick="game.exitWorld()">Disconnect</button>
+    <button id="back-to-menu" onclick="window.game.exitWorld()">Disconnect</button>
 
     <script type="importmap">
         {
             "imports": {
-                "three": "https://unpkg.com",
-                "three/addons/": "https://unpkg.com"
+                "three": "https://jsdelivr.net",
+                "three/addons/": "https://jsdelivr.net"
             }
         }
     </script>
     <script type="module">
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        window.game = window.game || {};
 
         window.worldsData = [
             {
@@ -121,13 +123,13 @@
 
         const BLOCK_TYPES = { TNT: new THREE.MeshLambertMaterial({ color: 0xcc3333 }), Dirt: new THREE.MeshLambertMaterial({ color: 0x866043 }), Air: null, Default: new THREE.MeshLambertMaterial({ color: 0x777777 }) };
         const blockGeometry = new THREE.BoxGeometry(1, 1, 1);
-        let renderedMeshes = [];
-        const raycaster = new THREE.Raycaster();
-        const mouseVector = new THREE.Vector2();
+        window.renderedMeshes = [];
+        window.raycaster = new THREE.Raycaster();
+        window.mouseVector = new THREE.Vector2();
 
-        let fpsCounter = 0, lastFpsTime = 0, currentFpsDisplayValue = 0;
-        let cpsCounter = 0, lastCpsResetTime = 0;
-        window.game = {
+        window.fpsCounter = 0; window.lastFpsTime = 0; window.currentFpsDisplayValue = 0;
+        window.cpsCounter = 0; window.lastCpsResetTime = 0;
+        Object.assign(window.game, {
             scene: null, camera: null, renderer: null, controls: null,
             currentWorldIndex: 0, currentPlayer: "Guest", isInitialized: false,
             serverAdmins: ["alex", "notch"],
@@ -180,7 +182,7 @@
                 this.serverAdmins.forEach((admin, index) => {
                     const row = document.createElement('div');
                     row.className = 'admin-item';
-                    row.innerHTML = '<span>' + admin + '</span><button class="admin-del-btn" onclick="game.deleteAdminUser(' + index + ')">Delete</button>';
+                    row.innerHTML = '<span>' + admin + '</span><button class="admin-del-btn" onclick="window.game.deleteAdminUser(' + index + ')">Delete</button>';
                     box.appendChild(row);
                 });
             },
@@ -212,12 +214,12 @@
                     const btnDiv = document.createElement('div');
                     const playBtn = document.createElement('button');
                     playBtn.className = 'btn-play'; playBtn.textContent = 'Connect';
-                    playBtn.onclick = () => game.loadWorld(index);
+                    playBtn.onclick = () => window.game.loadWorld(index);
                     btnDiv.appendChild(playBtn);
                     if (w.owner === this.currentPlayer) {
                         const delBtn = document.createElement('button');
                         delBtn.className = 'btn-delete'; delBtn.textContent = 'Delete';
-                        delBtn.onclick = () => game.deleteWorld(index);
+                        delBtn.onclick = () => window.game.deleteWorld(index);
                         btnDiv.appendChild(delBtn);
                     }
                     card.appendChild(infoDiv); card.appendChild(btnDiv); list.appendChild(card);
@@ -289,8 +291,8 @@
                 }
             },
             render: function() {
-                renderedMeshes.forEach(mesh => this.scene.remove(mesh));
-                renderedMeshes = [];
+                window.renderedMeshes.forEach(mesh => this.scene.remove(mesh));
+                window.renderedMeshes = [];
                 const activeWorld = window.worldsData[this.currentWorldIndex];
                 if (!activeWorld) return;
                 document.getElementById('world-info').textContent = 'Active World: ' + activeWorld.worldname + ' (Owner: ' + activeWorld.owner + ')';
@@ -310,7 +312,7 @@
                         const mesh = new THREE.Mesh(blockGeometry, material);
                         mesh.position.set(b.x, b.y, b.z);
                         mesh.userData = { blockData: b };
-                        this.scene.add(mesh); renderedMeshes.push(mesh);
+                        this.scene.add(mesh); window.renderedMeshes.push(mesh);
                     }
                 });
             },
@@ -341,10 +343,10 @@
                 window.addEventListener('pointerdown', (e) => {
                     if (document.querySelector('canvas').style.display !== 'block') return;
                     if (document.activeElement === document.getElementById('chat-input')) return;
-                    cpsCounter++;
-                    mouseVector.x = 0; mouseVector.y = 0;
-                    raycaster.setFromCamera(mouseVector, this.camera);
-                    const intersects = raycaster.intersectObjects(renderedMeshes);
+                    window.cpsCounter++;
+                    window.mouseVector.x = 0; window.mouseVector.y = 0;
+                    window.raycaster.setFromCamera(window.mouseVector, this.camera);
+                    const intersects = window.raycaster.intersectObjects(window.renderedMeshes);
                     if (intersects.length > 0) {
                         const targetMesh = intersects.object; const blockData = targetMesh.userData.blockData;
                         const activeWorld = window.worldsData[this.currentWorldIndex];
@@ -391,11 +393,11 @@
                 const animate = () => {
                     requestAnimationFrame(animate);
                     if (document.querySelector('canvas').style.display === 'block') {
-                        fpsCounter++; const time = performance.now();
-                        if (time >= lastFpsTime + 1000) { currentFpsDisplayValue = Math.round((fpsCounter * 1000) / (time - lastFpsTime)); fpsCounter = 0; lastFpsTime = time; }
-                        if (time >= lastCpsResetTime + 1000) { window.currentCpsDisplayValue = cpsCounter; cpsCounter = 0; lastCpsResetTime = time; }
+                        window.fpsCounter++; const time = performance.now();
+                        if (time >= window.lastFpsTime + 1000) { window.currentFpsDisplayValue = Math.round((window.fpsCounter * 1000) / (time - window.lastFpsTime)); window.fpsCounter = 0; window.lastFpsTime = time; }
+                        if (time >= window.lastCpsResetTime + 1000) { window.currentCpsDisplayValue = window.cpsCounter; window.cpsCounter = 0; window.lastCpsResetTime = time; }
                         let metricsHTML = '';
-                        if(document.getElementById('set-fps').checked) metricsHTML += 'FPS: ' + currentFpsDisplayValue + '<br>';
+                        if(document.getElementById('set-fps').checked) metricsHTML += 'FPS: ' + window.currentFpsDisplayValue + '<br>';
                         if(document.getElementById('set-tps').checked) metricsHTML += 'TPS: 20.0<br>';
                         if(document.getElementById('set-ping').checked) metricsHTML += 'Ping: ' + Math.floor(Math.random() * 5 + 12) + 'ms<br>';
                         if(document.getElementById('set-cps').checked) metricsHTML += 'CPS: ' + (window.currentCpsDisplayValue || 0);
@@ -405,9 +407,9 @@
                 };
                 animate();
             }
-        };
-        game.checkAuthCookies();
-        window.addEventListener('resize', () => { if (game.isInitialized) { game.camera.aspect = window.innerWidth / window.innerHeight; game.camera.updateProjectionMatrix(); game.renderer.setSize(window.innerWidth, window.innerHeight); } });
+        });
+        window.game.checkAuthCookies();
+        window.addEventListener('resize', () => { if (window.game.isInitialized) { window.game.camera.aspect = window.innerWidth / window.innerHeight; window.game.camera.updateProjectionMatrix(); window.game.renderer.setSize(window.innerWidth, window.innerHeight); } });
     </script>
 </body>
 </html>
