@@ -94,7 +94,6 @@
     <div id="hud-panel">Holding: None</div>
     <button id="back-to-menu" onclick="exitWorld()">Disconnect</button>
     <script>
-        // Te zmienne i funkcje są czyste i globalne - HTML uruchamia je natychmiast!
         let currentPlayer = "Guest";
         let serverAdmins = ["alex", "notch"];
         let currentWorldIndex = 0;
@@ -145,8 +144,8 @@
     <script type="importmap">
         {
             "imports": {
-                "three": "https://jsdelivr.net",
-                "three/addons/": "https://jsdelivr.net"
+                "three": "https://unpkg.com",
+                "three/addons/": "https://unpkg.com"
             }
         }
     </script>
@@ -355,7 +354,7 @@
                 if (intersects.length > 0) {
                     const targetMesh = intersects.object; const blockData = targetMesh.userData.blockData;
                     const activeWorld = window.worldsData[currentWorldIndex];
-                    const myPlayerProfile = activeWorld.players.find(p => p.name === currentPlayer);
+                    const myPlayerProfile = activeWorld.blocks ? activeWorld.players.find(p => p.name === currentPlayer) : null;
                     if (e.button === 0) {
                         const bIndex = activeWorld.blocks.findIndex(b => b === blockData);
                         if (bIndex > -1) { activeWorld.blocks.splice(bIndex, 1); window.renderWorldBlocks(); }
