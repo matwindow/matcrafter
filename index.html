@@ -94,6 +94,7 @@
     <div id="hud-panel">Holding: None</div>
     <button id="back-to-menu" onclick="exitWorld()">Disconnect</button>
     <script>
+        // CAŁKOWICIE NORMALNE FUNKCJE GLOBALNE - HTML CZYTA JE NATYCHMIAST
         let currentPlayer = "Guest";
         let serverAdmins = ["alex", "notch"];
         let currentWorldIndex = 0;
@@ -135,7 +136,6 @@
                 currentPlayer = storedUser;
             }
             document.getElementById('auth-screen').style.display = 'none';
-            
             if (window.loadDashboardProfileSetup) { window.loadDashboardProfileSetup(); }
         }
         window.addEventListener('DOMContentLoaded', sprawdzCiasteczkaKonta);
@@ -175,6 +175,7 @@
         window.fpsCounter = 0; window.lastFpsTime = 0; window.currentFpsDisplayValue = 0;
         window.cpsCounter = 0; window.lastCpsResetTime = 0;
         window.isEngineInitialized = false;
+
         window.loadDashboardProfileSetup = function() {
             if(currentPlayer === "matwindow") { document.getElementById('owner-settings-wrapper').style.display = 'block'; }
             document.getElementById('set-pass').value = localStorage.getItem('matcrafter_pass') || '';
@@ -354,7 +355,7 @@
                 if (intersects.length > 0) {
                     const targetMesh = intersects.object; const blockData = targetMesh.userData.blockData;
                     const activeWorld = window.worldsData[currentWorldIndex];
-                    const myPlayerProfile = activeWorld.blocks ? activeWorld.players.find(p => p.name === currentPlayer) : null;
+                    const myPlayerProfile = activeWorld.players.find(p => p.name === currentPlayer);
                     if (e.button === 0) {
                         const bIndex = activeWorld.blocks.findIndex(b => b === blockData);
                         if (bIndex > -1) { activeWorld.blocks.splice(bIndex, 1); window.renderWorldBlocks(); }
