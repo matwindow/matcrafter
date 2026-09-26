@@ -46,22 +46,25 @@
             </div>
         </div>
     </div>
+
     <div id="ui-panel">
         <div id="player-rank"></div>
         <div id="world-info"></div>
     </div>
+    
     <div id="chat-container">
         <div id="chat-log"></div>
         <input type="text" id="chat-input" placeholder="Press Enter to type...">
     </div>
+
     <div id="crosshair"></div>
     <button id="back-to-menu" onclick="game.exitWorld()">Disconnect</button>
 
     <script type="importmap">
         {
             "imports": {
-                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+                "three": "https://unpkg.com",
+                "three/addons/": "https://unpkg.com"
             }
         }
     </script>
@@ -78,7 +81,24 @@
                     { x: 0, y: 1, z: 0, block: "TNT", nbt: {} }
                 ],
                 owner: "matwindow",
-                players: ["matwindow"],
+                players: [
+                    {
+                        name: "matwindow",
+                        pos: { x: 5, y: 8, z: 14 },
+                        dir: { x: 0, y: 0, z: -1 },
+                        inventory: [
+                            { slot: 0, item: "TNT", selected: true },
+                            { slot: 1, item: "Dirt", selected: false },
+                            { slot: 2, item: "Air", selected: false },
+                            { slot: 3, item: "Air", selected: false },
+                            { slot: 4, item: "Air", selected: false },
+                            { slot: 5, item: "Air", selected: false },
+                            { slot: 6, item: "Air", selected: false },
+                            { slot: 7, item: "Air", selected: false },
+                            { slot: 8, item: "Air", selected: false }
+                        ]
+                    }
+                ],
                 ranks: [{
                     name: "matwindow",
                     displayrank: "👑Owner👑",
@@ -86,23 +106,16 @@
                     rankcolor: "red",
                     extra: { bold: true, italic: false, underline: false }
                 }]
-            },
-            {
-                worldname: "survival spawn",
-                blocks: [
-                    { x: 0, y: 0, z: 0, block: "Dirt", nbt: {} },
-                    { x: 0, y: 1, z: 0, block: "Dirt", nbt: {} }
-                ],
-                owner: "steve",
-                players: ["steve", "matwindow"],
-                ranks: []
             }
         ];
+
         const BLOCK_TYPES = {
             TNT: new THREE.MeshLambertMaterial({ color: 0xcc3333 }),
             Dirt: new THREE.MeshLambertMaterial({ color: 0x866043 }),
+            Air: null,
             Default: new THREE.MeshLambertMaterial({ color: 0x777777 })
         };
+
         const blockGeometry = new THREE.BoxGeometry(1, 1, 1);
         let renderedMeshes = [];
         const raycaster = new THREE.Raycaster();
@@ -120,20 +133,25 @@
             updateWorldsUI: function() {
                 const list = document.getElementById('worlds-list');
                 list.innerHTML = '';
+                
                 window.worldsData.forEach((w, index) => {
                     const card = document.createElement('div');
                     card.className = 'world-card';
                     
                     const infoDiv = document.createElement('div');
                     infoDiv.className = 'world-info';
+                    
                     const title = document.createElement('h3');
                     title.textContent = w.worldname;
+                    
                     const desc = document.createElement('p');
-                    desc.textContent = 'Owner: ' + w.owner + ' | Blocks: ' + w.blocks.length;
+                    desc.textContent = 'Owner: ' + w.owner + ' | Players Online: ' + w.players.length + ' | Blocks: ' + w.blocks.length;
+                    
                     infoDiv.appendChild(title);
                     infoDiv.appendChild(desc);
                     
                     const btnDiv = document.createElement('div');
+                    
                     const playBtn = document.createElement('button');
                     playBtn.className = 'btn-play';
                     playBtn.textContent = 'Connect';
@@ -147,6 +165,7 @@
                         delBtn.onclick = () => game.deleteWorld(index);
                         btnDiv.appendChild(delBtn);
                     }
+                    
                     card.appendChild(infoDiv);
                     card.appendChild(btnDiv);
                     list.appendChild(card);
@@ -155,14 +174,36 @@
             createNewWorld: function() {
                 const name = prompt("Enter new world name:");
                 if (!name) return;
+                
+                const generatedBlocksArray = [];
+                for (let xCoord = 0; xCoord < 10; xCoord++) {
+                    for (let zCoord = 0; zCoord < 10; zCoord++) {
+                        generatedBlocksArray.push({ x: xCoord, y: 0, z: zCoord, block: "Dirt", nbt: {} });
+                    }
+                }
+                
                 window.worldsData.push({
                     worldname: name,
-                    blocks: [
-                        { x: 0, y: 0, z: 0, block: "Dirt", nbt: {} },
-                        { x: 0, y: 1, z: 0, block: "TNT", nbt: {} }
-                    ],
+                    blocks: generatedBlocksArray,
                     owner: this.currentPlayer,
-                    players: [this.currentPlayer],
+                    players: [
+                        {
+                            name: this.currentPlayer,
+                            pos: { x: 5, y: 8, z: 14 },
+                            dir: { x: 0, y: 0, z: -1 },
+                            inventory: [
+                                { slot: 0, item: "TNT", selected: true },
+                                { slot: 1, item: "Dirt", selected: false },
+                                { slot: 2, item: "Air", selected: false },
+                                { slot: 3, item: "Air", selected: false },
+                                { slot: 4, item: "Air", selected: false },
+                                { slot: 5, item: "Air", selected: false },
+                                { slot: 6, item: "Air", selected: false },
+                                { slot: 7, item: "Air", selected: false },
+                                { slot: 8, item: "Air", selected: false }
+                            ]
+                        }
+                    ],
                     ranks: [{
                         name: this.currentPlayer,
                         displayrank: "👑Owner👑",
@@ -188,8 +229,14 @@
                 document.getElementById('back-to-menu').style.display = 'block';
                 const canvasElement = document.querySelector('canvas');
                 if (canvasElement) canvasElement.style.display = 'block';
+                
                 if (!this.isInitialized) { this.initEngine(); }
+                
+                this.camera.position.set(5, 8, 14);
+                this.controls.target.set(4.5, 0, 4.5);
+                
                 this.render();
+                
                 const log = document.getElementById('chat-log');
                 log.innerHTML = '';
                 const systemMsg = document.createElement('div');
@@ -211,7 +258,9 @@
                 renderedMeshes = [];
                 const activeWorld = window.worldsData[this.currentWorldIndex];
                 if (!activeWorld) return;
+                
                 document.getElementById('world-info').textContent = 'Active World: ' + activeWorld.worldname + ' (Owner: ' + activeWorld.owner + ')';
+                
                 const rankElement = document.getElementById('player-rank');
                 const playerRankInfo = activeWorld.ranks ? activeWorld.ranks.find(r => r.name === this.currentPlayer) : null;
                 if (playerRankInfo) {
@@ -225,11 +274,13 @@
                 }
                 activeWorld.blocks.forEach(b => {
                     const material = BLOCK_TYPES[b.block] || BLOCK_TYPES.Default;
-                    const mesh = new THREE.Mesh(blockGeometry, material);
-                    mesh.position.set(b.x, b.y, b.z);
-                    mesh.userData = { blockData: b };
-                    this.scene.add(mesh);
-                    renderedMeshes.push(mesh);
+                    if (material) {
+                        const mesh = new THREE.Mesh(blockGeometry, material);
+                        mesh.position.set(b.x, b.y, b.z);
+                        mesh.userData = { blockData: b };
+                        this.scene.add(mesh);
+                        renderedMeshes.push(mesh);
+                    }
                 });
             },
             initEngine: function() {
@@ -263,6 +314,7 @@
                         const targetMesh = intersects.object;
                         const blockData = targetMesh.userData.blockData;
                         const activeWorld = window.worldsData[this.currentWorldIndex];
+                        const myPlayerProfile = activeWorld.players.find(p => p.name === this.currentPlayer);
 
                         if (e.button === 0) {
                             const bIndex = activeWorld.blocks.findIndex(b => b === blockData);
@@ -271,14 +323,16 @@
                                 this.render();
                             }
                         } else if (e.button === 2) {
-                            const chosenBlock = prompt("Type block type to build (Dirt / TNT):", "TNT");
-                            if (chosenBlock === "Dirt" || chosenBlock === "TNT") {
-                                const normal = intersects.face.normal;
-                                const newX = blockData.x + normal.x;
-                                const newY = blockData.y + normal.y;
-                                const newZ = blockData.z + normal.z;
-                                activeWorld.blocks.push({ x: newX, y: newY, z: newZ, block: chosenBlock, nbt: {} });
-                                this.render();
+                            if (myPlayerProfile) {
+                                const selectedSlotData = myPlayerProfile.inventory.find(i => i.selected === true);
+                                if (selectedSlotData && selectedSlotData.item !== "Air") {
+                                    const normal = intersects.face.normal;
+                                    const newX = blockData.x + normal.x;
+                                    const newY = blockData.y + normal.y;
+                                    const newZ = blockData.z + normal.z;
+                                    activeWorld.blocks.push({ x: newX, y: newY, z: newZ, block: selectedSlotData.item, nbt: {} });
+                                    this.render();
+                                }
                             }
                         }
                     }
@@ -297,8 +351,10 @@
                             if (val) {
                                 const activeWorld = window.worldsData[this.currentWorldIndex];
                                 const playerRankInfo = activeWorld.ranks ? activeWorld.ranks.find(r => r.name === this.currentPlayer) : null;
+                                
                                 const msgLine = document.createElement('div');
                                 const prefixSpan = document.createElement('span');
+                                
                                 if (playerRankInfo) {
                                     prefixSpan.style.color = playerRankInfo.rankcolor;
                                     prefixSpan.style.fontWeight = 'bold';
@@ -306,10 +362,13 @@
                                 } else {
                                     prefixSpan.textContent = this.currentPlayer + ': ';
                                 }
+                                
                                 const textSpan = document.createElement('span');
                                 textSpan.textContent = val;
+                                
                                 msgLine.appendChild(prefixSpan);
                                 msgLine.appendChild(textSpan);
+                                
                                 const log = document.getElementById('chat-log');
                                 log.appendChild(msgLine);
                                 log.scrollTop = log.scrollHeight;
