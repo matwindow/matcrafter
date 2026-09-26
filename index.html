@@ -94,53 +94,7 @@
     <div id="hud-panel">Holding: None</div>
     <button id="back-to-menu" onclick="window.game.exitWorld()">Disconnect</button>
     <script>
-        // Przygotowanie bezpiecznych zmiennych globalnych
-        window.game = {
-            currentPlayer: "Guest",
-            serverAdmins: ["alex", "notch"]
-        };
-
-        function sprawdzCiasteczkaKonta() {
-            const storedUser = localStorage.getItem('matcrafter_user');
-            const storedPass = localStorage.getItem('matcrafter_pass');
-            if (!storedUser || !storedPass) {
-                document.getElementById('auth-screen').style.display = 'flex';
-                document.getElementById('auth-title').textContent = "Create Account";
-            } else {
-                document.getElementById('auth-screen').style.display = 'flex';
-                document.getElementById('auth-title').textContent = "Retype Password to Join";
-                document.getElementById('auth-user').value = storedUser;
-                document.getElementById('auth-user').disabled = true;
-            }
-        }
-
-        function zalogujUzytkownika() {
-            const userField = document.getElementById('auth-user').value.trim();
-            const passField = document.getElementById('auth-pass').value.trim();
-            if (!userField || !passField) return alert("Fill in fields!");
-
-            const storedUser = localStorage.getItem('matcrafter_user');
-            const storedPass = localStorage.getItem('matcrafter_pass');
-
-            if (!storedUser) {
-                localStorage.setItem('matcrafter_user', userField);
-                localStorage.setItem('matcrafter_pass', passField);
-                window.game.currentPlayer = userField;
-            } else {
-                if (passField !== storedPass) return alert("Wrong Password!");
-                window.game.currentPlayer = storedUser;
-            }
-            document.getElementById('auth-screen').style.display = 'none';
-            
-            if (window.game.loadDashboardProfileSetup) {
-                window.game.loadDashboardProfileSetup();
-            }
-        }
-
-        window.addEventListener('DOMContentLoaded', sprawdzCiasteczkaKonta);
-    </script>
-    <script>
-        // Szybki skrypt bazowy uruchamiany natychmiast przed silnikiem 3D
+        // Przygotowanie natychmiastowego dostępu do obiektu dla przycisków HTML
         window.game = {
             currentPlayer: "Guest",
             serverAdmins: ["alex", "notch"],
@@ -181,7 +135,7 @@
             }
         }
 
-        window.addEventListener('DOMContentLoaded', sprawdzCiasteczkaKonta);
+        window.addEventListener('DOMContentLoaded', () => { window.game.checkAuthCookies(); });
     </script>
     <script type="importmap">
         {
