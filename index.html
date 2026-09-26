@@ -1,13 +1,12 @@
 <!DOCTYPE html>
-<html lang="pl">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Matcrafter - Chmura i Serwery</title>
+    <title>Matcrafter - Cloud Servers Engine</title>
     <style>
         body { margin: 0; overflow: hidden; background-color: #87CEEB; font-family: sans-serif; }
         canvas { display: block; width: 100vw; height: 100vh; }
-        /* Panel gracza i rangi w lewym górnym rogu */
         #ui-panel {
             position: absolute;
             top: 10px;
@@ -16,15 +15,15 @@
             color: white;
             padding: 15px;
             border-radius: 8px;
-            pointer-events: none; /* Kliknięcia przechodzą do gry */
+            pointer-events: none;
         }
     </style>
 </head>
 <body>
 
     <div id="ui-panel">
-        <div id="player-rank">Wczytywanie gracza...</div>
-        <div id="world-info">Aktywny świat: brak</div>
+        <div id="player-rank">Loading player profile...</div>
+        <div id="world-info">Active World: None</div>
     </div>
 
     <script type="importmap">
@@ -39,7 +38,6 @@
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-        // --- TWOJA STRUKTURA BAZY ŚWIATÓW (DOKŁADNIE TAKA JAK CHCIAŁEŚ) ---
         window.worldsData = [{
             worldname: "hello!",
             blocks: [
@@ -58,7 +56,6 @@
             }]
         }];
 
-        // Definicje kolorów dla Twoich bloków
         const BLOCK_TYPES = {
             TNT: new THREE.MeshLambertMaterial({ color: 0xcc3333 }),
             Dirt: new THREE.MeshLambertMaterial({ color: 0x866043 }),
@@ -73,30 +70,23 @@
             currentWorldIndex: 0,
             currentPlayer: "matwindow",
 
-            // Renderowanie na podstawie struktury worldsData
             render: function() {
-                // Czyszczenie starego świata
                 renderedMeshes.forEach(mesh => this.scene.remove(mesh));
                 renderedMeshes = [];
 
-                // Pobieramy aktualnie włączony świat z naszej tablicy
                 const activeWorld = window.worldsData[this.currentWorldIndex];
-                
                 if (!activeWorld) return;
 
-                // Aktualizujemy napisy na ekranie (UI)
-                document.getElementById('world-info').innerText = `Aktywny świat: ${activeWorld.worldname} (Właściciel: ${activeWorld.owner})`;
+                document.getElementById('world-info').innerText = `Active World: ${activeWorld.worldname} (Owner: ${activeWorld.owner})`;
                 
-                // Szukamy rangi dla obecnego gracza
                 const playerRankInfo = activeWorld.ranks.find(r => r.name === this.currentPlayer);
                 if (playerRankInfo) {
                     const rankElement = document.getElementById('player-rank');
-                    rankElement.innerText = `Gracz: ${playerRankInfo.name} [${playerRankInfo.displayrank}]`;
+                    rankElement.innerText = `Player: ${playerRankInfo.name} [${playerRankInfo.displayrank}]`;
                     rankElement.style.color = playerRankInfo.rankcolor;
                     if (playerRankInfo.extra.bold) rankElement.style.fontWeight = 'bold';
                 }
 
-                // Budowanie klocków świata 3D
                 activeWorld.blocks.forEach(b => {
                     const material = BLOCK_TYPES[b.block] || BLOCK_TYPES.Default;
                     const mesh = new THREE.Mesh(blockGeometry, material);
@@ -128,7 +118,6 @@
                 const ambientLight = new THREE.AmbientLight(0x666666);
                 this.scene.add(ambientLight);
 
-                // Pierwsze wyrenderowanie świata
                 this.render();
 
                 const animate = () => {
