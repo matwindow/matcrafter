@@ -3,34 +3,122 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Matcrafter - Cloud Servers Engine</title>
+    <title>Matcrafter - Cloud Dashboard</title>
     <style>
-        body { margin: 0; overflow: hidden; background-color: #87CEEB; font-family: sans-serif; }
-        canvas { display: block; width: 100vw; height: 100vh; }
+        body { margin: 0; overflow: hidden; background-color: #000000; font-family: sans-serif; color: white; }
+        canvas { display: none; width: 100vw; height: 100vh; }
+        
+        #main-menu {
+            display: flex;
+            width: 100vw;
+            height: 100vh;
+            background-color: #000000;
+        }
+        #sidebar {
+            width: 250px;
+            background-color: #111111;
+            border-right: 2px solid #222222;
+            display: flex;
+            flex-direction: column;
+            padding: 20px 0;
+        }
+        .sidebar-btn {
+            background: none;
+            border: none;
+            color: #aaaaaa;
+            padding: 15px 25px;
+            text-align: left;
+            font-size: 18px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .sidebar-btn:hover, .sidebar-btn.active {
+            color: #ffffff;
+            background-color: #222222;
+        }
+        #content-area {
+            flex-grow: 1;
+            padding: 40px;
+            overflow-y: auto;
+        }
+        
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        .world-card {
+            background-color: #161616;
+            border: 1px solid #222222;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .world-info h3 { margin: 0 0 5px 0; color: #ffffff; }
+        .world-info p { margin: 0; color: #777777; font-size: 14px; }
+        
+        .btn-play { background-color: #2e8b57; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-right: 10px; }
+        .btn-delete { background-color: #cc3333; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn-create { background-color: #0088cc; color: white; border: none; padding: 12px 24px; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: bold; margin-bottom: 25px; }
+        
         #ui-panel {
+            display: none;
             position: absolute;
             top: 10px;
             left: 10px;
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0, 0, 0, 0.8);
             color: white;
             padding: 15px;
             border-radius: 8px;
             pointer-events: none;
         }
+        #back-to-menu {
+            display: none;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: #333333;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
 
-    <div id="ui-panel">
-        <div id="player-rank">Loading player profile...</div>
-        <div id="world-info">Active World: None</div>
+    <div id="main-menu">
+        <div id="sidebar">
+            <button class="sidebar-btn active" onclick="game.switchTab('worlds-tab', this)">Worlds</button>
+            <button class="sidebar-btn" onclick="game.switchTab('settings-tab', this)">Settings</button>
+        </div>
+        <div id="content-area">
+            <div id="worlds-tab" class="tab-content active">
+                <h1 style="margin-top: 0;">Server Worlds</h1>
+                <button class="btn-create" onclick="game.createNewWorld()">Create New World</button>
+                <div id="worlds-list"></div>
+            </div>
+            <div id="settings-tab" class="tab-content">
+                <h1 style="margin-top: 0;">Settings</h1>
+                <p style="color: #777777;">Control configurations and graphics setups coming soon...</p>
+            </div>
+        </div>
     </div>
+
+    <div id="ui-panel">
+        <div id="player-rank"></div>
+        <div id="world-info"></div>
+    </div>
+    <button id="back-to-menu" onclick="game.exitWorld()">Disconnect</button>
 
     <script type="importmap">
         {
             "imports": {
-                "three": "https://unpkg.com",
-                "three/addons/": "https://unpkg.com"
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
             }
         }
     </script>
@@ -38,23 +126,35 @@
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-        window.worldsData = [{
-            worldname: "hello!",
-            blocks: [
-                { x: 0, y: 0, z: 0, block: "Dirt", nbt: {} },
-                { x: 1, y: 0, z: 0, block: "Dirt", nbt: {} },
-                { x: 0, y: 1, z: 0, block: "TNT", nbt: {} }
-            ],
-            owner: "matwindow",
-            players: ["matwindow"],
-            ranks: [{
-                name: "matwindow",
-                displayrank: "👑Owner👑",
-                rank: "owner",
-                rankcolor: "red",
-                extra: { bold: true, italic: false, underline: false }
-            }]
-        }];
+        window.worldsData = [
+            {
+                worldname: "hello!",
+                blocks: [
+                    { x: 0, y: 0, z: 0, block: "Dirt", nbt: {} },
+                    { x: 1, y: 0, z: 0, block: "Dirt", nbt: {} },
+                    { x: 0, y: 1, z: 0, block: "TNT", nbt: {} }
+                ],
+                owner: "matwindow",
+                players: ["matwindow"],
+                ranks: [{
+                    name: "matwindow",
+                    displayrank: "👑Owner👑",
+                    rank: "owner",
+                    rankcolor: "red",
+                    extra: { bold: true, italic: false, underline: false }
+                }]
+            },
+            {
+                worldname: "survival spawn",
+                blocks: [
+                    { x: 0, y: 0, z: 0, block: "Dirt", nbt: {} },
+                    { x: 0, y: 1, z: 0, block: "Dirt", nbt: {} }
+                ],
+                owner: "steve",
+                players: ["steve", "matwindow"],
+                ranks: []
+            }
+        ];
 
         const BLOCK_TYPES = {
             TNT: new THREE.MeshLambertMaterial({ color: 0xcc3333 }),
@@ -69,6 +169,94 @@
             scene: null, camera: null, renderer: null, controls: null,
             currentWorldIndex: 0,
             currentPlayer: "matwindow",
+            isInitialized: false,
+
+            switchTab: function(tabId, btn) {
+                document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+                document.querySelectorAll('.sidebar-btn').forEach(b => b.classList.remove('active'));
+                document.getElementById(tabId).classList.add('active');
+                btn.classList.add('active');
+            },
+
+            updateWorldsUI: function() {
+                const list = document.getElementById('worlds-list');
+                list.innerHTML = '';
+                
+                window.worldsData.forEach((w, index) => {
+                    const card = document.createElement('div');
+                    card.className = 'world-card';
+                    
+                    let deleteButtonHTML = '';
+                    if (w.owner === this.currentPlayer) {
+                        deleteButtonHTML = `<button class="btn-delete" onclick="game.deleteWorld(${index})">Delete</button>`;
+                    }
+                    
+                    card.innerHTML = `
+                        <div class="world-info">
+                            <h3>\${w.worldname}</h3>
+                            <p>Owner: \${w.owner} | Blocks: \${w.blocks.length}</p>
+                        </div>
+                        <div>
+                            <button class="btn-play" onclick="game.loadWorld(\${index})">Connect</button>
+                            \${deleteButtonHTML}
+                        </div>
+                    `;
+                    list.appendChild(card);
+                });
+            },
+
+            createNewWorld: function() {
+                const name = prompt("Enter new world name:");
+                if (!name) return;
+                
+                window.worldsData.push({
+                    worldname: name,
+                    blocks: [
+                        { x: 0, y: 0, z: 0, block: "Dirt", nbt: {} },
+                        { x: 0, y: 1, z: 0, block: "TNT", nbt: {} }
+                    ],
+                    owner: this.currentPlayer,
+                    players: [this.currentPlayer],
+                    ranks: [{
+                        name: this.currentPlayer,
+                        displayrank: "👑Owner👑",
+                        rank: "owner",
+                        rankcolor: "red",
+                        extra: { bold: true, italic: false, underline: false }
+                    }]
+                });
+                this.updateWorldsUI();
+            },
+
+            deleteWorld: function(index) {
+                if (confirm(`Are you sure you want to delete "\${window.worldsData[index].worldname}"?`)) {
+                    window.worldsData.splice(index, 1);
+                    this.updateWorldsUI();
+                }
+            },
+
+            loadWorld: function(index) {
+                this.currentWorldIndex = index;
+                document.getElementById('main-menu').style.display = 'none';
+                document.getElementById('ui-panel').style.display = 'block';
+                document.getElementById('back-to-menu').style.display = 'block';
+                
+                const canvasElement = document.querySelector('canvas');
+                if (canvasElement) canvasElement.style.display = 'block';
+
+                if (!this.isInitialized) {
+                    this.initEngine();
+                }
+                this.render();
+            },
+
+            exitWorld: function() {
+                document.getElementById('main-menu').style.display = 'flex';
+                document.getElementById('ui-panel').style.display = 'none';
+                document.getElementById('back-to-menu').style.display = 'none';
+                document.querySelector('canvas').style.display = 'none';
+                this.updateWorldsUI();
+            },
 
             render: function() {
                 renderedMeshes.forEach(mesh => this.scene.remove(mesh));
@@ -77,14 +265,19 @@
                 const activeWorld = window.worldsData[this.currentWorldIndex];
                 if (!activeWorld) return;
 
-                document.getElementById('world-info').innerText = `Active World: ${activeWorld.worldname} (Owner: ${activeWorld.owner})`;
+                document.getElementById('world-info').innerText = `Active World: \${activeWorld.worldname} (Owner: \${activeWorld.owner})`;
                 
-                const playerRankInfo = activeWorld.ranks.find(r => r.name === this.currentPlayer);
+                const rankElement = document.getElementById('player-rank');
+                const playerRankInfo = activeWorld.ranks ? activeWorld.ranks.find(r => r.name === this.currentPlayer) : null;
+                
                 if (playerRankInfo) {
-                    const rankElement = document.getElementById('player-rank');
-                    rankElement.innerText = `Player: ${playerRankInfo.name} [${playerRankInfo.displayrank}]`;
+                    rankElement.innerText = `Player: \${playerRankInfo.name} [\${playerRankInfo.displayrank}]`;
                     rankElement.style.color = playerRankInfo.rankcolor;
-                    if (playerRankInfo.extra.bold) rankElement.style.fontWeight = 'bold';
+                    rankElement.style.fontWeight = playerRankInfo.extra.bold ? 'bold' : 'normal';
+                } else {
+                    rankElement.innerText = `Player: \${this.currentPlayer} [Member]`;
+                    rankElement.style.color = '#ffffff';
+                    rankElement.style.fontWeight = 'normal';
                 }
 
                 activeWorld.blocks.forEach(b => {
@@ -96,7 +289,7 @@
                 });
             },
 
-            init: function() {
+            initEngine: function() {
                 this.scene = new THREE.Scene();
                 this.scene.background = new THREE.Color(0x87CEEB);
 
@@ -118,23 +311,27 @@
                 const ambientLight = new THREE.AmbientLight(0x666666);
                 this.scene.add(ambientLight);
 
-                this.render();
+                this.isInitialized = true;
 
                 const animate = () => {
                     requestAnimationFrame(animate);
-                    this.controls.update();
-                    this.renderer.render(this.scene, this.camera);
+                    if (document.querySelector('canvas').style.display === 'block') {
+                        this.controls.update();
+                        this.renderer.render(this.scene, this.camera);
+                    }
                 };
                 animate();
             }
         };
 
-        game.init();
+        game.updateWorldsUI();
 
         window.addEventListener('resize', () => {
-            game.camera.aspect = window.innerWidth / window.innerHeight;
-            game.camera.updateProjectionMatrix();
-            game.renderer.setSize(window.innerWidth, window.innerHeight);
+            if (game.isInitialized) {
+                game.camera.aspect = window.innerWidth / window.innerHeight;
+                game.camera.updateProjectionMatrix();
+                game.renderer.setSize(window.innerWidth, window.innerHeight);
+            }
         });
     </script>
 </body>
