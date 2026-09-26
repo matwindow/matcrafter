@@ -20,11 +20,12 @@
         .btn-play { background-color: #2e8b57; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-right: 10px; }
         .btn-delete { background-color: #cc3333; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; }
         .btn-create { background-color: #0088cc; color: white; border: none; padding: 12px 24px; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: bold; margin-bottom: 25px; }
-        #ui-panel { display: none; position: absolute; top: 10px; left: 10px; background: rgba(0, 0, 0, 0.8); color: white; padding: 15px; border-radius: 8px; pointer-events: none; }
-        #back-to-menu { display: none; position: absolute; top: 10px; right: 10px; background-color: #333333; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; }
-        #chat-container { display: none; position: absolute; bottom: 20px; left: 20px; width: 350px; height: 200px; background: rgba(0, 0, 0, 0.5); border-radius: 6px; padding: 10px; box-sizing: border-box; }
+        #ui-panel { display: none; position: absolute; top: 10px; left: 10px; background: rgba(0, 0, 0, 0.8); color: white; padding: 15px; border-radius: 8px; pointer-events: none; z-index: 10; }
+        #back-to-menu { display: none; position: absolute; top: 10px; right: 10px; background-color: #333333; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; z-index: 10; }
+        #chat-container { display: none; position: absolute; bottom: 20px; left: 20px; width: 350px; height: 200px; background: rgba(0, 0, 0, 0.5); border-radius: 6px; padding: 10px; box-sizing: border-box; z-index: 10; }
         #chat-log { width: 100%; height: 140px; overflow-y: auto; font-size: 14px; margin-bottom: 5px; }
         #chat-input { width: 100%; background: rgba(0, 0, 0, 0.8); border: 1px solid #444; color: white; padding: 5px; box-sizing: border-box; border-radius: 4px; outline: none; }
+        #crosshair { display: none; position: absolute; top: 50%; left: 50%; width: 10px; height: 10px; background-color: white; border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; z-index: 5; mix-blend-mode: difference; }
     </style>
 </head>
 <body>
@@ -53,6 +54,7 @@
         <div id="chat-log"></div>
         <input type="text" id="chat-input" placeholder="Press Enter to type...">
     </div>
+    <div id="crosshair"></div>
     <button id="back-to-menu" onclick="game.exitWorld()">Disconnect</button>
 
     <script type="importmap">
@@ -103,6 +105,8 @@
         };
         const blockGeometry = new THREE.BoxGeometry(1, 1, 1);
         let renderedMeshes = [];
+        const raycaster = new THREE.Raycaster();
+        const mouseVector = new THREE.Vector2();
         window.game = {
             scene: null, camera: null, renderer: null, controls: null,
             currentWorldIndex: 0, currentPlayer: "matwindow", isInitialized: false,
@@ -119,18 +123,32 @@
                 window.worldsData.forEach((w, index) => {
                     const card = document.createElement('div');
                     card.className = 'world-card';
-                    let deleteButtonHTML = '';
+                    
+                    const infoDiv = document.createElement('div');
+                    infoDiv.className = 'world-info';
+                    const title = document.createElement('h3');
+                    title.textContent = w.worldname;
+                    const desc = document.createElement('p');
+                    desc.textContent = 'Owner: ' + w.owner + ' | Blocks: ' + w.blocks.length;
+                    infoDiv.appendChild(title);
+                    infoDiv.appendChild(desc);
+                    
+                    const btnDiv = document.createElement('div');
+                    const playBtn = document.createElement('button');
+                    playBtn.className = 'btn-play';
+                    playBtn.textContent = 'Connect';
+                    playBtn.onclick = () => game.loadWorld(index);
+                    btnDiv.appendChild(playBtn);
+                    
                     if (w.owner === this.currentPlayer) {
-                        deleteButtonHTML = '<button class="btn-delete" onclick="game.deleteWorld(' + index + ')">Delete</button>';
+                        const delBtn = document.createElement('button');
+                        delBtn.className = 'btn-delete';
+                        delBtn.textContent = 'Delete';
+                        delBtn.onclick = () => game.deleteWorld(index);
+                        btnDiv.appendChild(delBtn);
                     }
-                    card.innerHTML = '<div class="world-info">' +
-                        '<h3>' + w.worldname + '</h3>' +
-                        '<p>Owner: ' + w.owner + ' | Blocks: ' + w.blocks.length + '</p>' +
-                        '</div>' +
-                        '<div>' +
-                        '<button class="btn-play" onclick="game.loadWorld(' + index + ')">Connect</button>' +
-                        deleteButtonHTML +
-                        '</div>';
+                    card.appendChild(infoDiv);
+                    card.appendChild(btnDiv);
                     list.appendChild(card);
                 });
             },
@@ -166,18 +184,24 @@
                 document.getElementById('main-menu').style.display = 'none';
                 document.getElementById('ui-panel').style.display = 'block';
                 document.getElementById('chat-container').style.display = 'block';
+                document.getElementById('crosshair').style.display = 'block';
                 document.getElementById('back-to-menu').style.display = 'block';
                 const canvasElement = document.querySelector('canvas');
                 if (canvasElement) canvasElement.style.display = 'block';
                 if (!this.isInitialized) { this.initEngine(); }
                 this.render();
                 const log = document.getElementById('chat-log');
-                log.innerHTML = '<div><span style="color: #aaa;">* Connected to server: ' + window.worldsData[index].worldname + '</span></div>';
+                log.innerHTML = '';
+                const systemMsg = document.createElement('div');
+                systemMsg.style.color = '#aaa';
+                systemMsg.textContent = '* Connected to server: ' + window.worldsData[index].worldname;
+                log.appendChild(systemMsg);
             },
             exitWorld: function() {
                 document.getElementById('main-menu').style.display = 'flex';
                 document.getElementById('ui-panel').style.display = 'none';
                 document.getElementById('chat-container').style.display = 'none';
+                document.getElementById('crosshair').style.display = 'none';
                 document.getElementById('back-to-menu').style.display = 'none';
                 document.querySelector('canvas').style.display = 'none';
                 this.updateWorldsUI();
@@ -187,15 +211,15 @@
                 renderedMeshes = [];
                 const activeWorld = window.worldsData[this.currentWorldIndex];
                 if (!activeWorld) return;
-                document.getElementById('world-info').innerText = 'Active World: ' + activeWorld.worldname + ' (Owner: ' + activeWorld.owner + ')';
+                document.getElementById('world-info').textContent = 'Active World: ' + activeWorld.worldname + ' (Owner: ' + activeWorld.owner + ')';
                 const rankElement = document.getElementById('player-rank');
                 const playerRankInfo = activeWorld.ranks ? activeWorld.ranks.find(r => r.name === this.currentPlayer) : null;
                 if (playerRankInfo) {
-                    rankElement.innerText = 'Player: ' + playerRankInfo.name + ' [' + playerRankInfo.displayrank + ']';
+                    rankElement.textContent = 'Player: ' + playerRankInfo.name + ' [' + playerRankInfo.displayrank + ']';
                     rankElement.style.color = playerRankInfo.rankcolor;
                     rankElement.style.fontWeight = playerRankInfo.extra.bold ? 'bold' : 'normal';
                 } else {
-                    rankElement.innerText = 'Player: ' + this.currentPlayer + ' [Member]';
+                    rankElement.textContent = 'Player: ' + this.currentPlayer + ' [Member]';
                     rankElement.style.color = '#ffffff';
                     rankElement.style.fontWeight = 'normal';
                 }
@@ -203,6 +227,7 @@
                     const material = BLOCK_TYPES[b.block] || BLOCK_TYPES.Default;
                     const mesh = new THREE.Mesh(blockGeometry, material);
                     mesh.position.set(b.x, b.y, b.z);
+                    mesh.userData = { blockData: b };
                     this.scene.add(mesh);
                     renderedMeshes.push(mesh);
                 });
@@ -225,6 +250,44 @@
                 this.scene.add(ambientLight);
                 this.isInitialized = true;
 
+                window.addEventListener('pointerdown', (e) => {
+                    if (document.querySelector('canvas').style.display !== 'block') return;
+                    if (document.activeElement === document.getElementById('chat-input')) return;
+
+                    mouseVector.x = 0;
+                    mouseVector.y = 0;
+                    raycaster.setFromCamera(mouseVector, this.camera);
+                    const intersects = raycaster.intersectObjects(renderedMeshes);
+
+                    if (intersects.length > 0) {
+                        const targetMesh = intersects.object;
+                        const blockData = targetMesh.userData.blockData;
+                        const activeWorld = window.worldsData[this.currentWorldIndex];
+
+                        if (e.button === 0) {
+                            const bIndex = activeWorld.blocks.findIndex(b => b === blockData);
+                            if (bIndex > -1) {
+                                activeWorld.blocks.splice(bIndex, 1);
+                                this.render();
+                            }
+                        } else if (e.button === 2) {
+                            const chosenBlock = prompt("Type block type to build (Dirt / TNT):", "TNT");
+                            if (chosenBlock === "Dirt" || chosenBlock === "TNT") {
+                                const normal = intersects.face.normal;
+                                const newX = blockData.x + normal.x;
+                                const newY = blockData.y + normal.y;
+                                const newZ = blockData.z + normal.z;
+                                activeWorld.blocks.push({ x: newX, y: newY, z: newZ, block: chosenBlock, nbt: {} });
+                                this.render();
+                            }
+                        }
+                    }
+                });
+
+                window.addEventListener('contextmenu', (e) => {
+                    if (document.querySelector('canvas').style.display === 'block') e.preventDefault();
+                });
+
                 window.addEventListener('keydown', (e) => {
                     if (document.getElementById('chat-container').style.display !== 'block') return;
                     const input = document.getElementById('chat-input');
@@ -234,9 +297,21 @@
                             if (val) {
                                 const activeWorld = window.worldsData[this.currentWorldIndex];
                                 const playerRankInfo = activeWorld.ranks ? activeWorld.ranks.find(r => r.name === this.currentPlayer) : null;
-                                const prefix = playerRankInfo ? '<span style="color:' + playerRankInfo.rankcolor + '; font-weight: bold;">[' + playerRankInfo.displayrank + '] ' + this.currentPlayer + '</span>: ' : '<span>' + this.currentPlayer + '</span>: ';
+                                const msgLine = document.createElement('div');
+                                const prefixSpan = document.createElement('span');
+                                if (playerRankInfo) {
+                                    prefixSpan.style.color = playerRankInfo.rankcolor;
+                                    prefixSpan.style.fontWeight = 'bold';
+                                    prefixSpan.textContent = '[' + playerRankInfo.displayrank + '] ' + this.currentPlayer + ': ';
+                                } else {
+                                    prefixSpan.textContent = this.currentPlayer + ': ';
+                                }
+                                const textSpan = document.createElement('span');
+                                textSpan.textContent = val;
+                                msgLine.appendChild(prefixSpan);
+                                msgLine.appendChild(textSpan);
                                 const log = document.getElementById('chat-log');
-                                log.innerHTML += '<div>' + prefix + val + '</div>';
+                                log.appendChild(msgLine);
                                 log.scrollTop = log.scrollHeight;
                                 input.value = '';
                             }
