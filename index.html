@@ -1,1 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matcrafter</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #000000; font-family: sans-serif; color: white; }
+        canvas { display: none; width: 100vw; height: 100vh; }
+        #main-menu { display: flex; width: 100vw; height: 100vh; background-color: #000000; }
+        #sidebar { width: 250px; background-color: #111111; border-right: 2px solid #222222; display: flex; flex-direction: column; padding: 20px 0; }
+        .sidebar-btn { background: none; border: none; color: #aaaaaa; padding: 15px 25px; text-align: left; font-size: 18px; cursor: pointer; transition: 0.2s; }
+        .sidebar-btn:hover, .sidebar-btn.active { color: #ffffff; background-color: #222222; }
+        #content-area { flex-grow: 1; padding: 40px; overflow-y: auto; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .world-card { background-color: #161616; border: 1px solid #222222; padding: 20px; border-radius: 8px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .world-info h3 { margin: 0 0 5px 0; color: #ffffff; }
+        .world-info p { margin: 0; color: #777777; font-size: 14px; }
+        .btn-play { background-color: #2e8b57; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; margin-right: 10px; }
+        .btn-delete { background-color: #cc3333; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn-create { background-color: #0088cc; color: white; border: none; padding: 12px 24px; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: bold; margin-bottom: 25px; }
+        #ui-panel { display: none; position: absolute; top: 10px; left: 10px; background: rgba(0, 0, 0, 0.8); color: white; padding: 15px; border-radius: 8px; pointer-events: none; z-index: 10; }
+        #back-to-menu { display: none; position: absolute; top: 10px; right: 10px; background-color: #333333; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; z-index: 10; }
+        #chat-container { display: none; position: absolute; bottom: 20px; left: 20px; width: 350px; height: 200px; background: rgba(0, 0, 0, 0.5); border-radius: 6px; padding: 10px; box-sizing: border-box; z-index: 10; }
+        #chat-log { width: 100%; height: 140px; overflow-y: auto; font-size: 14px; margin-bottom: 5px; }
+        #chat-input { width: 100%; background: rgba(0, 0, 0, 0.8); border: 1px solid #444; color: white; padding: 5px; box-sizing: border-box; border-radius: 4px; outline: none; }
+        #crosshair { display: none; position: absolute; top: 50%; left: 50%; width: 10px; height: 10px; background-color: white; border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; z-index: 5; mix-blend-mode: difference; }
+        #hud-panel { display: none; position: absolute; bottom: 20px; right: 20px; background: rgba(0, 0, 0, 0.7); color: #fff; padding: 12px 20px; border-radius: 6px; font-size: 16px; border: 1px solid #333; z-index: 10; }
+        .active-slot-glow { color: #ffaa00; font-weight: bold; }
+        #metrics-panel { display: none; position: absolute; top: 10px; right: 150px; background: rgba(0, 0, 0, 0.7); padding: 10px; border-radius: 6px; font-size: 14px; font-family: monospace; z-index: 10; line-height: 1.4; border: 1px solid #333; }
+        .setting-row { display: flex; align-items: center; justify-content: space-between; max-width: 400px; margin-bottom: 15px; background: #161616; padding: 10px 15px; border-radius: 6px; border: 1px solid #222; }
+        .setting-row input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
+        .setting-row input[type="text"], .setting-row input[type="password"] { background: #222; border: 1px solid #444; color: white; padding: 6px 10px; border-radius: 4px; outline: none; }
+        #auth-screen { display: flex; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #000; z-index: 100; justify-content: center; align-items: center; flex-direction: column; }
+        .auth-box { background: #111; border: 1px solid #222; padding: 30px; border-radius: 8px; width: 300px; display: flex; flex-direction: column; gap: 15px; }
+        .auth-box h2 { margin: 0 0 10px 0; text-align: center; }
+        .auth-box input { background: #222; border: 1px solid #444; color: white; padding: 10px; border-radius: 4px; outline: none; }
+        .auth-box button { background: #0088cc; color: white; border: none; padding: 12px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 16px; }
+        .admin-item { display: flex; justify-content: space-between; align-items: center; background: #222; padding: 8px 12px; border-radius: 4px; margin-top: 5px; }
+        .admin-del-btn { background: #cc3333; border: none; color: white; padding: 4px 8px; border-radius: 3px; cursor: pointer; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div id="auth-screen">
+        <div class="auth-box">
+            <h2 id="auth-title">Create Account</h2>
+            <input type="text" id="auth-user" placeholder="Username">
+            <input type="password" id="auth-pass" placeholder="Password">
+            <button id="auth-btn" onclick="game.handleAuthSubmit()">Submit</button>
+        </div>
+    </div>
+
+    <div id="main-menu">
+        <div id="sidebar">
+            <button class="sidebar-btn active" onclick="game.switchTab('worlds-tab', this)">Worlds</button>
+            <button class="sidebar-btn" onclick="game.switchTab('settings-tab', this)">Settings</button>
+        </div>
+        <div id="content-area">
+            <div id="worlds-tab" class="tab-content active">
+                <h1 style="margin-top: 0;">Server Worlds</h1>
+                <button class="btn-create" onclick="game.createNewWorld()">Create New World</button>
+                <div id="worlds-list"></div>
+            </div>
+            <div id="settings-tab" class="tab-content">
+                <h1 style="margin-top: 0;">Settings</h1>
+                <div class="setting-row"><span>Show FPS</span><input type="checkbox" id="set-fps" checked onchange="game.saveSettings()"></div>
+                <div class="setting-row"><span>Show TPS</span><input type="checkbox" id="set-tps" checked onchange="game.saveSettings()"></div>
+                <div class="setting-row"><span>Show Ping</span><input type="checkbox" id="set-ping" checked onchange="game.saveSettings()"></div>
+                <div class="setting-row"><span>Show CPS</span><input type="checkbox" id="set-cps" checked onchange="game.saveSettings()"></div>
+                <div class="setting-row"><span>Change Password</span><input type="password" id="set-pass" placeholder="New Password" onchange="game.saveSettings()"></div>
+                
+                <div id="owner-settings-wrapper" style="display: none; margin-top: 30px; border-top: 2px solid #222; padding-top: 20px;">
+                    <h2 style="color: red; margin-top: 0;">Owner Settings (Admin Control)</h2>
+                    <div style="background: #111; padding: 20px; border-radius: 6px; border: 1px solid #222; max-width: 400px;">
+                        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                            <input type="text" id="admin-input" placeholder="Admin Name" style="background:#222; border:1px solid #444; color:white; padding:8px; border-radius:4px; flex-grow:1; outline:none;">
+                            <button onclick="game.addAdminUser()" style="background:#2e8b57; color:white; border:none; padding:8px 15px; border-radius:4px; cursor:pointer; font-weight:bold;">Add</button>
+                        </div>
+                        <div id="admin-list-box"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="ui-panel">
+        <div id="player-rank"></div>
+        <div id="world-info"></div>
+    </div>
+    <div id="metrics-panel"></div>
+    <div id="chat-container"><div id="chat-log"></div><input type="text" id="chat-input" placeholder="Press Enter to type..."></div>
+    <div id="crosshair"></div>
+    <div id="hud-panel">Holding: None</div>
+    <button id="back-to-menu" onclick="game.exitWorld()">Disconnect</button>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com",
+                "three/addons/": "https://unpkg.com"
+            }
+        }
+    </script>
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        window.worldsData = [
+            {
+                worldname: "hello!",
+                blocks: [
+                    { x: 0, y: 0, z: 0, block: "Dirt", nbt: {} },
+                    { x: 1, y: 0, z: 0, block: "Dirt", nbt: {} },
+                    { x: 0, y: 1, z: 0, block: "TNT", nbt: {} }
+                ],
+                owner: "matwindow",
+                players: [],
+                ranks: [{ name: "matwindow", displayrank: "👑Owner👑", rank: "owner", rankcolor: "red", extra: { bold: true, italic: false, underline: false } }]
+            }
+        ];
+
+        const BLOCK_TYPES = { TNT: new THREE.MeshLambertMaterial({ color: 0xcc3333 }), Dirt: new THREE.MeshLambertMaterial({ color: 0x866043 }), Air: null, Default: new THREE.MeshLambertMaterial({ color: 0x777777 }) };
+        const blockGeometry = new THREE.BoxGeometry(1, 1, 1);
+        let renderedMeshes = [];
+        const raycaster = new THREE.Raycaster();
+        const mouseVector = new THREE.Vector2();
+
+        let fpsCounter = 0, lastFpsTime = 0, currentFpsDisplayValue = 0;
+        let cpsCounter = 0, lastCpsResetTime = 0;
+
+        window.game = {
+            scene: null, camera: null, renderer: null, controls: null,
+            currentWorldIndex: 0, currentPlayer: "Guest", isInitialized: false,
+            serverAdmins: ["alex", "notch"],
+
+            checkAuthCookies: function() {
+                const storedUser = localStorage.getItem('matcrafter_user');
+                const storedPass = localStorage.getItem('matcrafter_pass');
+                if (!storedUser || !storedPass) {
+                    document.getElementById('auth-screen').style.display = 'flex';
+                    document.getElementById('auth-title').textContent = "Create Account";
+                } else {
+                    document.getElementById('auth-screen').style.display = 'flex';
+                    document.getElementById('auth-title').textContent = "Retype Password to Join";
+                    document.getElementById('auth-user').value = storedUser;
+                    document.getElementById('auth-user').disabled = true;
+                }
+            },
+            handleAuthSubmit: function() {
+                const userField = document.getElementById('auth-user').value.trim();
+                const passField = document.getElementById('auth-pass').value.trim();
+                if (!userField || !passField) return alert("Fill in fields!");
+
+                const storedUser = localStorage.getItem('matcrafter_user');
+                const storedPass = localStorage.getItem('matcrafter_pass');
+
+                if (!storedUser) {
+                    localStorage.setItem('matcrafter_user', userField);
+                    localStorage.setItem('matcrafter_pass', passField);
+                    this.currentPlayer = userField;
+                } else {
+                    if (passField !== storedPass) return alert("Wrong Password!");
+                    this.currentPlayer = storedUser;
+                }
+                document.getElementById('auth-screen').style.display = 'none';
+                this.loadDashboardProfileSetup();
+            },
+            loadDashboardProfileSetup: function() {
+                if(this.currentPlayer === "matwindow") {
+                    document.getElementById('owner-settings-wrapper').style.display = 'block';
+                }
+                document.getElementById('set-pass').value = localStorage.getItem('matcrafter_pass') || '';
+                document.title = "Matcrafter";
+                this.updateWorldsUI();
+                this.renderAdminListBox();
+            },
+            saveSettings: function() {
+                const newPass = document.getElementById('set-pass').value.trim();
+                if(newPass) localStorage.setItem('matcrafter_pass', newPass);
+                this.updateHUDDisplay();
+            },
+            renderAdminListBox: function() {
+                const box = document.getElementById('admin-list-box');
+                box.innerHTML = '';
+                this.serverAdmins.forEach((admin, index) => {
+                    const row = document.createElement('div');
+                    row.className = 'admin-item';
+                    row.innerHTML = '<span>' + admin + '</span><button class="admin-del-btn" onclick="game.deleteAdminUser(' + index + ')">Delete</button>';
+                    box.appendChild(row);
+                });
+            },
+            addAdminUser: function() {
+                const input = document.getElementById('admin-input');
+                const val = input.value.trim().toLowerCase();
+                if(val && !this.serverAdmins.includes(val)) {
+                    this.serverAdmins.push(val);
+                    input.value = '';
+                    this.renderAdminListBox();
+                }
+            },
+            deleteAdminUser: function(index) {
+                this.serverAdmins.splice(index, 1);
+                this.renderAdminListBox();
+            },
+            switchTab: function(tabId, btn) {
+                document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+                document.querySelectorAll('.sidebar-btn').forEach(b => b.classList.remove('active'));
+                document.getElementById(tabId).classList.add('active');
+                btn.classList.add('active');
+            },
+            updateWorldsUI: function() {
+                const list = document.getElementById('worlds-list');
+                list.innerHTML = '';
+                window.worldsData.forEach((w, index) => {
+                    const card = document.createElement('div');
+                    card.className = 'world-card';
+                    const infoDiv = document.createElement('div');
+                    infoDiv.className = 'world-info';
+                    const title = document.createElement('h3');
+                    title.textContent = w.worldname;
+                    const desc = document.createElement('p');
+                    desc.textContent = 'Owner: ' + w.owner + ' | Players Online: ' + w.players.length + ' | Blocks: ' + w.blocks.length;
+                    infoDiv.appendChild(title); infoDiv.appendChild(desc);
+                    const btnDiv = document.createElement('div');
+                    const playBtn = document.createElement('button');
+                    playBtn.className = 'btn-play'; playBtn.textContent = 'Connect';
+                    playBtn.onclick = () => game.loadWorld(index);
+                    btnDiv.appendChild(playBtn);
+                    if (w.owner === this.currentPlayer) {
+                        const delBtn = document.createElement('button');
+                        delBtn.className = 'btn-delete'; delBtn.textContent = 'Delete';
+                        delBtn.onclick = () => game.deleteWorld(index);
+                        btnDiv.appendChild(delBtn);
+                    }
+                    card.appendChild(infoDiv); card.appendChild(btnDiv); list.appendChild(card);
+                });
+            },
+            createNewWorld: function() {
+                const name = prompt("Enter new world name:");
+                if (!name) return;
+                const generatedBlocksArray = [];
+                for (let xCoord = 0; xCoord < 10; xCoord++) {
+                    for (let zCoord = 0; zCoord < 10; zCoord++) {
+                        generatedBlocksArray.push({ x: xCoord, y: 0, z: zCoord, block: "Dirt", nbt: {} });
+                    }
+                }
+                window.worldsData.push({
+                    worldname: name, blocks: generatedBlocksArray, owner: this.currentPlayer,
+                    players: [{ name: this.currentPlayer, pos: { x: 5, y: 8, z: 14 }, dir: { x: 0, y: 0, z: -1 }, inventory: [{ slot: 0, item: "TNT", selected: true }, { slot: 1, item: "Dirt", selected: false }, { slot: 2, item: "Air", selected: false }, { slot: 3, item: "Air", selected: false }, { slot: 4, item: "Air", selected: false }, { slot: 5, item: "Air", selected: false }, { slot: 6, item: "Air", selected: false }, { slot: 7, item: "Air", selected: false }, { slot: 8, item: "Air", selected: false }] }],
+                    ranks: [{ name: "matwindow", displayrank: "👑Owner👑", rank: "owner", rankcolor: "red", extra: { bold: true, italic: false, underline: false } }]
+                });
+                this.updateWorldsUI();
+            },
+            deleteWorld: function(index) {
+                if (confirm("Are you sure you want to delete this world?")) { window.worldsData.splice(index, 1); this.updateWorldsUI(); }
+            },
+            initEngine: function() {
+                this.scene = new THREE.Scene(); this.scene.background = new THREE.Color(0x87CEEB);
+                this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                this.renderer = new THREE.WebGLRenderer({ antialias: true });
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                document.body.appendChild(this.renderer.domElement);
+                this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+                this.controls.enableDamping = true; this.controls.dampingFactor = 0.05;
+                const sunLight = new THREE.DirectionalLight(0xffffff, 1.2); sunLight.position.set(10, 20, 15); this.scene.add(sunLight);
+                const ambientLight = new THREE.AmbientLight(0x666666); this.scene.add(ambientLight);
+                this.isInitialized = true;
+
+                window.addEventListener('keydown', (e) => {
+                    if (document.querySelector('canvas').style.display !== 'block') return;
+                    if (document.activeElement === document.getElementById('chat-input')) return;
+                    if (e.key >= '1' && e.key <= '9') {
+                        const targetedSlotIndex = parseInt(e.key) - 1;
+                        const activeWorld = window.worldsData[this.currentWorldIndex];
+                        if (!activeWorld) return;
+                        const profile = activeWorld.players.find(p => p.name === this.currentPlayer);
+                        if (profile) { profile.inventory.forEach(slot => slot.selected = false); profile.inventory[targetedSlotIndex].selected = true; this.updateHUDDisplay(); }
+                    }
+                });
+                window.addEventListener('pointerdown', (e) => {
+                    if (document.querySelector('canvas').style.display !== 'block') return;
+                    if (document.activeElement === document.getElementById('chat-input')) return;
+                    cpsCounter++;
+                    mouseVector.x = 0; mouseVector.y = 0;
+                    raycaster.setFromCamera(mouseVector, this.camera);
+                    const intersects = raycaster.intersectObjects(renderedMeshes);
+                    if (intersects.length > 0) {
+                        const targetMesh = intersects.object; const blockData = targetMesh.userData.blockData;
+                        const activeWorld = window.worldsData[this.currentWorldIndex];
+                        const myPlayerProfile = activeWorld.players.find(p => p.name === this.currentPlayer);
+                        if (e.button === 0) {
+                            const bIndex = activeWorld.blocks.findIndex(b => b === blockData);
+                            if (bIndex > -1) { activeWorld.blocks.splice(bIndex, 1); this.render(); }
+                        } else if (e.button === 2) {
+                            if (myPlayerProfile) {
+                                const selectedSlotData = myPlayerProfile.inventory.find(i => i.selected === true);
+                                if (selectedSlotData && selectedSlotData.item !== "Air") {
+                                    const normal = intersects.face.normal;
+                                    const newX = blockData.x + normal.x; const newY = blockData.y + normal.y; const newZ = blockData.z + normal.z;
+                                    activeWorld.blocks.push({ x: newX, y: newY, z: newZ, block: selectedSlotData.item, nbt: {} });
+                                    this.render();
+                                }
+                            }
+                        }
+                    }
+                });
+
+                window.addEventListener('contextmenu', (e) => { if (document.querySelector('canvas').style.display === 'block') e.preventDefault(); });
+
+                window.addEventListener('keydown', (e) => {
+                    if (document.getElementById('chat-container').style.display !== 'block') return;
+                    const input = document.getElementById('chat-input');
+                    if (e.key === 'Enter') {
+                        if (document.activeElement === input) {
+                            const val = input.value.trim();
+                            if (val) {
+                                const activeWorld = window.worldsData[this.currentWorldIndex];
+                                const playerRankInfo = activeWorld.ranks ? activeWorld.ranks.find(r => r.name === this.currentPlayer) : null;
+                                const msgLine = document.createElement('div'); const prefixSpan = document.createElement('span');
+                                if (playerRankInfo) { prefixSpan.style.color = playerRankInfo.rankcolor; prefixSpan.style.fontWeight = 'bold'; prefixSpan.textContent = '[' + playerRankInfo.displayrank + '] ' + this.currentPlayer + ': '; }
+                                else { prefixSpan.textContent = this.currentPlayer + ': '; }
+                                const textSpan = document.createElement('span'); textSpan.textContent = val; msgLine.appendChild(prefixSpan); msgLine.appendChild(textSpan);
+                                const log = document.getElementById('chat-log'); log.appendChild(msgLine); log.scrollTop = log.scrollHeight; input.value = '';
+                            }
+                            input.blur();
+                        } else { input.focus(); }
+                    }
+                });
+
+                const animate = () => {
+                    requestAnimationFrame(animate);
+                    if (document.querySelector('canvas').style.display === 'block') {
+                        fpsCounter++; const time = performance.now();
+                        if (time >= lastFpsTime + 1000) { currentFpsDisplayValue = Math.round((fpsCounter * 1000) / (time - lastFpsTime)); fpsCounter = 0; lastFpsTime = time; }
+                        if (time >= lastCpsResetTime + 1000) { window.currentCpsDisplayValue = cpsCounter; cpsCounter = 0; lastCpsResetTime = time; }
+                        let metricsHTML = '';
+                        if(document.getElementById('set-fps').checked) metricsHTML += 'FPS: ' + currentFpsDisplayValue + '<br>';
+                        if(document.getElementById('set-tps').checked) metricsHTML += 'TPS: 20.0<br>';
+                        if(document.getElementById('set-ping').checked) metricsHTML += 'Ping: ' + Math.floor(Math.random() * 5 + 12) + 'ms<br>';
+                        if(document.getElementById('set-cps').checked) metricsHTML += 'CPS: ' + (window.currentCpsDisplayValue || 0);
+                        document.getElementById('metrics-panel').innerHTML = metricsHTML;
+                        this.controls.update(); this.renderer.render(this.scene, this.camera);
+                    }
+                };
+                animate();
+            }
+        };
+        game.checkAuthCookies();
+        window.addEventListener('resize', () => { if (game.isInitialized) { game.camera.aspect = window.innerWidth / window.innerHeight; game.camera.updateProjectionMatrix(); game.renderer.setSize(window.innerWidth, window.innerHeight); } });
+    </script>
+</body>
+</html>
 
