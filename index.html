@@ -47,7 +47,7 @@
             <h2 id="auth-title">Create Account</h2>
             <input type="text" id="auth-user" placeholder="Username">
             <input type="password" id="auth-pass" placeholder="Password">
-            <button id="auth-btn" onclick="launchAuth()">Submit</button>
+            <button id="auth-btn" onclick="zalogujUzytkownika()">Submit</button>
         </div>
     </div>
 
@@ -94,7 +94,53 @@
     <div id="hud-panel">Holding: None</div>
     <button id="back-to-menu" onclick="window.game.exitWorld()">Disconnect</button>
     <script>
-        // High-speed baseline execution scope completely immune to 3D thread loading locks
+        // Przygotowanie bezpiecznych zmiennych globalnych
+        window.game = {
+            currentPlayer: "Guest",
+            serverAdmins: ["alex", "notch"]
+        };
+
+        function sprawdzCiasteczkaKonta() {
+            const storedUser = localStorage.getItem('matcrafter_user');
+            const storedPass = localStorage.getItem('matcrafter_pass');
+            if (!storedUser || !storedPass) {
+                document.getElementById('auth-screen').style.display = 'flex';
+                document.getElementById('auth-title').textContent = "Create Account";
+            } else {
+                document.getElementById('auth-screen').style.display = 'flex';
+                document.getElementById('auth-title').textContent = "Retype Password to Join";
+                document.getElementById('auth-user').value = storedUser;
+                document.getElementById('auth-user').disabled = true;
+            }
+        }
+
+        function zalogujUzytkownika() {
+            const userField = document.getElementById('auth-user').value.trim();
+            const passField = document.getElementById('auth-pass').value.trim();
+            if (!userField || !passField) return alert("Fill in fields!");
+
+            const storedUser = localStorage.getItem('matcrafter_user');
+            const storedPass = localStorage.getItem('matcrafter_pass');
+
+            if (!storedUser) {
+                localStorage.setItem('matcrafter_user', userField);
+                localStorage.setItem('matcrafter_pass', passField);
+                window.game.currentPlayer = userField;
+            } else {
+                if (passField !== storedPass) return alert("Wrong Password!");
+                window.game.currentPlayer = storedUser;
+            }
+            document.getElementById('auth-screen').style.display = 'none';
+            
+            if (window.game.loadDashboardProfileSetup) {
+                window.game.loadDashboardProfileSetup();
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', sprawdzCiasteczkaKonta);
+    </script>
+    <script>
+        // Szybki skrypt bazowy uruchamiany natychmiast przed silnikiem 3D
         window.game = {
             currentPlayer: "Guest",
             serverAdmins: ["alex", "notch"],
@@ -112,8 +158,7 @@
                 }
             }
         };
-
-        function launchAuth() {
+        function zalogujUzytkownika() {
             const userField = document.getElementById('auth-user').value.trim();
             const passField = document.getElementById('auth-pass').value.trim();
             if (!userField || !passField) return alert("Fill in fields!");
@@ -130,327 +175,19 @@
                 window.game.currentPlayer = storedUser;
             }
             document.getElementById('auth-screen').style.display = 'none';
-            if (window.game.loadDashboardProfileSetup) { window.game.loadDashboardProfileSetup(); }
+            
+            if (window.game.loadDashboardProfileSetup) {
+                window.game.loadDashboardProfileSetup();
+            }
         }
 
-        window.addEventListener('DOMContentLoaded', () => { window.game.checkAuthCookies(); });
+        window.addEventListener('DOMContentLoaded', sprawdzCiasteczkaKonta);
     </script>
-
     <script type="importmap">
         {
             "imports": {
-                "three": "https://jsdelivr.net",
-                "three/addons/": "https://jsdelivr.net"
+                "three": "https://unpkg.com",
+                "three/addons/": "https://unpkg.com"
             }
         }
     </script>
-    <script type="module">
-        import * as THREE from 'three';
-        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-
-        window.worldsData = [
-            {
-                worldname: "hello!",
-                blocks: [
-                    { x: 0, y: 0, z: 0, block: "Dirt", nbt: {} },
-                    { x: 1, y: 0, z: 0, block: "Dirt", nbt: {} },
-                    { x: 0, y: 1, z: 0, block: "TNT", nbt: {} }
-                ],
-                owner: "matwindow",
-                players: [],
-                ranks: [{ name: "matwindow", displayrank: "👑Owner👑", rank: "owner", rankcolor: "red", extra: { bold: true, italic: false, underline: false } }]
-            }
-        ];
-
-        const BLOCK_TYPES = { TNT: new THREE.MeshLambertMaterial({ color: 0xcc3333 }), Dirt: new THREE.MeshLambertMaterial({ color: 0x866043 }), Air: null, Default: new THREE.MeshLambertMaterial({ color: 0x777777 }) };
-        const blockGeometry = new THREE.BoxGeometry(1, 1, 1);
-        window.renderedMeshes = [];
-        window.raycaster = new THREE.Raycaster();
-        window.mouseVector = new THREE.Vector2();
-
-        window.fpsCounter = 0; window.lastFpsTime = 0; window.currentFpsDisplayValue = 0;
-        window.cpsCounter = 0; window.lastCpsResetTime = 0;
-
-        Object.assign(window.game, {
-            scene: null, camera: null, renderer: null, controls: null,
-            currentWorldIndex: 0, isInitialized: false,
-
-            loadDashboardProfileSetup: function() {
-                if(this.currentPlayer === "matwindow") { document.getElementById('owner-settings-wrapper').style.display = 'block'; }
-                document.getElementById('set-pass').value = localStorage.getItem('matcrafter_pass') || '';
-                document.title = "Matcrafter";
-                this.updateWorldsUI(); this.renderAdminListBox();
-            },
-            saveSettings: function() {
-                const newPass = document.getElementById('set-pass').value.trim();
-                if(newPass) localStorage.setItem('matcrafter_pass', newPass);
-                this.updateHUDDisplay();
-            },
-            renderAdminListBox: function() {
-                const box = document.getElementById('admin-list-box');
-                if (!box) return;
-                box.innerHTML = '';
-                this.serverAdmins.forEach((admin, index) => {
-                    const row = document.createElement('div'); row.className = 'admin-item';
-                    row.innerHTML = '<span>' + admin + '</span><button class="admin-del-btn" onclick="window.game.deleteAdminUser(' + index + ')">Delete</button>';
-                    box.appendChild(row);
-                });
-            },
-            addAdminUser: function() {
-                const input = document.getElementById('admin-input');
-                const val = input.value.trim().toLowerCase();
-                if(val && !this.serverAdmins.includes(val)) { this.serverAdmins.push(val); input.value = ''; this.renderAdminListBox(); }
-            },
-            deleteAdminUser: function(index) { this.serverAdmins.splice(index, 1); this.renderAdminListBox(); },
-            switchTab: function(tabId, btn) {
-                document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-                document.querySelectorAll('.sidebar-btn').forEach(b => b.classList.remove('active'));
-                document.getElementById(tabId).classList.add('active'); btn.classList.add('active');
-            },
-            updateWorldsUI: function() {
-                const list = document.getElementById('worlds-list');
-                if (!list) return;
-                list.innerHTML = '';
-                window.worldsData.forEach((w, index) => {
-                    const card = document.createElement('div'); card.className = 'world-card';
-                    const infoDiv = document.createElement('div'); infoDiv.className = 'world-info';
-                    const title = document.createElement('h3'); title.textContent = w.worldname;
-                    const desc = document.createElement('p'); desc.textContent = 'Owner: ' + w.owner + ' | Players Online: ' + w.players.length + ' | Blocks: ' + w.blocks.length;
-                    infoDiv.appendChild(title); infoDiv.appendChild(desc);
-                    const btnDiv = document.createElement('div');
-                    const playBtn = document.createElement('button'); playBtn.className = 'btn-play'; playBtn.textContent = 'Connect';
-                    playBtn.onclick = () => window.game.loadWorld(index);
-                    btnDiv.appendChild(playBtn);
-                    if (w.owner === this.currentPlayer) {
-                        const delBtn = document.createElement('button'); delBtn.className = 'btn-delete'; delBtn.textContent = 'Delete';
-                        delBtn.onclick = () => window.game.deleteWorld(index);
-                        btnDiv.appendChild(delBtn);
-                    }
-                    card.appendChild(infoDiv); card.appendChild(btnDiv); list.appendChild(card);
-                });
-            },
-            createNewWorld: function() {
-                const name = prompt("Enter new world name:");
-                if (!name) return;
-                const generatedBlocksArray = [];
-                for (let xCoord = 0; xCoord < 10; xCoord++) {
-                    for (let zCoord = 0; zCoord < 10; zCoord++) {
-                        generatedBlocksArray.push({ x: xCoord, y: 0, z: zCoord, block: "Dirt", nbt: {} });
-                    }
-                }
-                window.worldsData.push({
-                    worldname: name, blocks: generatedBlocksArray, owner: this.currentPlayer,
-                    players: [{ name: this.currentPlayer, pos: { x: 5, y: 8, z: 14 }, dir: { x: 0, y: 0, z: -1 }, inventory: [{ slot: 0, item: "TNT", selected: true }, { slot: 1, item: "Dirt", selected: false }, { slot: 2, item: "Air", selected: false }, { slot: 3, item: "Air", selected: false }, { slot: 4, item: "Air", selected: false }, { slot: 5, item: "Air", selected: false }, { slot: 6, item: "Air", selected: false }, { slot: 7, item: "Air", selected: false }, { slot: 8, item: "Air", selected: false }] }],
-                    ranks: [{ name: "matwindow", displayrank: "👑Owner👑", rank: "owner", rankcolor: "red", extra: { bold: true, italic: false, underline: false } }]
-                });
-                this.updateWorldsUI();
-            },
-            deleteWorld: function(index) {
-                if (confirm("Are you sure you want to delete this world?")) { window.worldsData.splice(index, 1); this.updateWorldsUI(); }
-            },
-            updateWorldsUI: function() {
-                const list = document.getElementById('worlds-list');
-                if (!list) return;
-                list.innerHTML = '';
-                window.worldsData.forEach((w, index) => {
-                    const card = document.createElement('div'); card.className = 'world-card';
-                    const infoDiv = document.createElement('div'); infoDiv.className = 'world-info';
-                    const title = document.createElement('h3'); title.textContent = w.worldname;
-                    const desc = document.createElement('p'); desc.textContent = 'Owner: ' + w.owner + ' | Players Online: ' + w.players.length + ' | Blocks: ' + w.blocks.length;
-                    infoDiv.appendChild(title); infoDiv.appendChild(desc);
-                    const btnDiv = document.createElement('div');
-                    const playBtn = document.createElement('button'); playBtn.className = 'btn-play'; playBtn.textContent = 'Connect';
-                    playBtn.onclick = () => window.game.loadWorld(index);
-                    btnDiv.appendChild(playBtn);
-                    if (w.owner === this.currentPlayer) {
-                        const delBtn = document.createElement('button'); delBtn.className = 'btn-delete'; delBtn.textContent = 'Delete';
-                        delBtn.onclick = () => window.game.deleteWorld(index);
-                        btnDiv.appendChild(delBtn);
-                    }
-                    card.appendChild(infoDiv); card.appendChild(btnDiv); list.appendChild(card);
-                });
-            },
-            createNewWorld: function() {
-                const name = prompt("Enter new world name:");
-                if (!name) return;
-                const generatedBlocksArray = [];
-                for (let xCoord = 0; xCoord < 10; xCoord++) {
-                    for (let zCoord = 0; zCoord < 10; zCoord++) {
-                        generatedBlocksArray.push({ x: xCoord, y: 0, z: zCoord, block: "Dirt", nbt: {} });
-                    }
-                }
-                window.worldsData.push({
-                    worldname: name, blocks: generatedBlocksArray, owner: this.currentPlayer,
-                    players: [{ name: this.currentPlayer, pos: { x: 5, y: 8, z: 14 }, dir: { x: 0, y: 0, z: -1 }, inventory: [{ slot: 0, item: "TNT", selected: true }, { slot: 1, item: "Dirt", selected: false }, { slot: 2, item: "Air", selected: false }, { slot: 3, item: "Air", selected: false }, { slot: 4, item: "Air", selected: false }, { slot: 5, item: "Air", selected: false }, { slot: 6, item: "Air", selected: false }, { slot: 7, item: "Air", selected: false }, { slot: 8, item: "Air", selected: false }] }],
-                    ranks: [{ name: "matwindow", displayrank: "👑Owner👑", rank: "owner", rankcolor: "red", extra: { bold: true, italic: false, underline: false } }]
-                });
-                this.updateWorldsUI();
-            },
-            deleteWorld: function(index) {
-                if (confirm("Are you sure you want to delete this world?")) { window.worldsData.splice(index, 1); this.updateWorldsUI(); }
-            },
-            loadWorld: function(index) {
-                this.currentWorldIndex = index;
-                const activeWorld = window.worldsData[index];
-                document.title = "MatC-" + activeWorld.worldname;
-                document.getElementById('main-menu').style.display = 'none';
-                document.getElementById('ui-panel').style.display = 'block';
-                document.getElementById('chat-container').style.display = 'block';
-                document.getElementById('crosshair').style.display = 'block';
-                document.getElementById('hud-panel').style.display = 'block';
-                document.getElementById('metrics-panel').style.display = 'block';
-                document.getElementById('back-to-menu').style.display = 'block';
-                const canvasElement = document.querySelector('canvas');
-                if (canvasElement) canvasElement.style.display = 'block';
-                if (!this.isInitialized) { this.initEngine(); }
-                if (!activeWorld.players.some(p => p.name === this.currentPlayer)) {
-                    activeWorld.players.push({ name: this.currentPlayer, pos: { x: 5, y: 8, z: 14 }, dir: { x: 0, y: 0, z: -1 }, inventory: [{ slot: 0, item: "TNT", selected: true }, { slot: 1, item: "Dirt", selected: false }, { slot: 2, item: "Air", selected: false }, { slot: 3, item: "Air", selected: false }, { slot: 4, item: "Air", selected: false }, { slot: 5, item: "Air", selected: false }, { slot: 6, item: "Air", selected: false }, { slot: 7, item: "Air", selected: false }, { slot: 8, item: "Air", selected: false }] });
-                }
-                this.camera.position.set(5, 8, 14); this.controls.target.set(4.5, 0, 4.5);
-                this.render(); this.updateHUDDisplay();
-                const log = document.getElementById('chat-log');
-                log.innerHTML = '<div><span style="color: #aaa;">* Connected to server: ' + activeWorld.worldname + '</span></div>';
-            },
-            exitWorld: function() {
-                document.title = "Matcrafter";
-                document.getElementById('main-menu').style.display = 'flex';
-                document.getElementById('ui-panel').style.display = 'none';
-                document.getElementById('chat-container').style.display = 'none';
-                document.getElementById('crosshair').style.display = 'none';
-                document.getElementById('hud-panel').style.display = 'none';
-                document.getElementById('metrics-panel').style.display = 'none';
-                document.getElementById('back-to-menu').style.display = 'none';
-                document.querySelector('canvas').style.display = 'none';
-                this.updateWorldsUI();
-            },
-            updateHUDDisplay: function() {
-                const activeWorld = window.worldsData[this.currentWorldIndex];
-                if (!activeWorld) return;
-                const profile = activeWorld.players.find(p => p.name === this.currentPlayer);
-                if (profile) {
-                    const activeSlot = profile.inventory.find(i => i.selected === true);
-                    const hud = document.getElementById('hud-panel');
-                    if (activeSlot) hud.innerHTML = 'Slot ' + (activeSlot.slot + 1) + ': <span class="active-slot-glow">' + activeSlot.item + '</span>';
-                }
-            },
-            render: function() {
-                window.renderedMeshes.forEach(mesh => this.scene.remove(mesh));
-                window.renderedMeshes = [];
-                const activeWorld = window.worldsData[this.currentWorldIndex];
-                if (!activeWorld) return;
-                document.getElementById('world-info').textContent = 'Active World: ' + activeWorld.worldname + ' (Owner: ' + activeWorld.owner + ')';
-                const rankElement = document.getElementById('player-rank');
-                const playerRankInfo = activeWorld.ranks ? activeWorld.ranks.find(r => r.name === this.currentPlayer) : null;
-                if (playerRankInfo) {
-                    rankElement.textContent = 'Player: ' + playerRankInfo.name + ' [' + playerRankInfo.displayrank + ']';
-                    rankElement.style.color = playerRankInfo.rankcolor; rankElement.style.fontWeight = playerRankInfo.extra.bold ? 'bold' : 'normal';
-                } else {
-                    rankElement.textContent = 'Player: ' + this.currentPlayer + ' [Member]';
-                    rankElement.style.color = '#ffffff'; rankElement.style.fontWeight = 'normal';
-                }
-                activeWorld.blocks.forEach(b => {
-                    const material = BLOCK_TYPES[b.block] || BLOCK_TYPES.Default;
-                    if (material) {
-                        const mesh = new THREE.Mesh(blockGeometry, material);
-                        mesh.position.set(b.x, b.y, b.z); mesh.userData = { blockData: b };
-                        this.scene.add(mesh); window.renderedMeshes.push(mesh);
-                    }
-                });
-            },
-            initEngine: function() {
-                this.scene = new THREE.Scene(); this.scene.background = new THREE.Color(0x87CEEB);
-                this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-                this.renderer = new THREE.WebGLRenderer({ antialias: true }); this.renderer.setSize(window.innerWidth, window.innerHeight);
-                document.body.appendChild(this.renderer.domElement);
-                this.controls = new OrbitControls(this.camera, this.renderer.domElement);
-                this.controls.enableDamping = true; this.controls.dampingFactor = 0.05;
-                const sunLight = new THREE.DirectionalLight(0xffffff, 1.2); sunLight.position.set(10, 20, 15); this.scene.add(sunLight);
-                const ambientLight = new THREE.AmbientLight(0x666666); this.scene.add(ambientLight);
-                this.isInitialized = true;
-
-                window.addEventListener('keydown', (e) => {
-                    if (document.querySelector('canvas').style.display !== 'block') return;
-                    if (document.activeElement === document.getElementById('chat-input')) return;
-                    if (e.key >= '1' && e.key <= '9') {
-                        const targetedSlotIndex = parseInt(e.key) - 1;
-                        const activeWorld = window.worldsData[this.currentWorldIndex];
-                        if (!activeWorld) return;
-                        const profile = activeWorld.players.find(p => p.name === this.currentPlayer);
-                        if (profile) { profile.inventory.forEach(slot => slot.selected = false); profile.inventory[targetedSlotIndex].selected = true; this.updateHUDDisplay(); }
-                    }
-                });
-
-                window.addEventListener('pointerdown', (e) => {
-                    if (document.querySelector('canvas').style.display !== 'block') return;
-                    if (document.activeElement === document.getElementById('chat-input')) return;
-                    window.cpsCounter++;
-                    window.mouseVector.x = 0; window.mouseVector.y = 0;
-                    window.raycaster.setFromCamera(window.mouseVector, this.camera);
-                    const intersects = window.raycaster.intersectObjects(window.renderedMeshes);
-                    if (intersects.length > 0) {
-                        const targetMesh = intersects.object; const blockData = targetMesh.userData.blockData;
-                        const activeWorld = window.worldsData[this.currentWorldIndex];
-                        const myPlayerProfile = activeWorld.players.find(p => p.name === this.currentPlayer);
-                        if (e.button === 0) {
-                            const bIndex = activeWorld.blocks.findIndex(b => b === blockData);
-                            if (bIndex > -1) { activeWorld.blocks.splice(bIndex, 1); this.render(); }
-                        } else if (e.button === 2) {
-                            if (myPlayerProfile) {
-                                const selectedSlotData = myPlayerProfile.inventory.find(i => i.selected === true);
-                                if (selectedSlotData && selectedSlotData.item !== "Air") {
-                                    const normal = intersects.face.normal;
-                                    const newX = blockData.x + normal.x; const newY = blockData.y + normal.y; const newZ = blockData.z + normal.z;
-                                    activeWorld.blocks.push({ x: newX, y: newY, z: newZ, block: selectedSlotData.item, nbt: {} });
-                                    this.render();
-                                }
-                            }
-                        }
-                    }
-                });
-
-                window.addEventListener('contextmenu', (e) => { if (document.querySelector('canvas').style.display === 'block') e.preventDefault(); });
-
-                window.addEventListener('keydown', (e) => {
-                    if (document.getElementById('chat-container').style.display !== 'block') return;
-                    const input = document.getElementById('chat-input');
-                    if (e.key === 'Enter') {
-                        if (document.activeElement === input) {
-                            const val = input.value.trim();
-                            if (val) {
-                                const activeWorld = window.worldsData[this.currentWorldIndex];
-                                const playerRankInfo = activeWorld.ranks ? activeWorld.ranks.find(r => r.name === this.currentPlayer) : null;
-                                const msgLine = document.createElement('div'); const prefixSpan = document.createElement('span');
-                                if (playerRankInfo) { prefixSpan.style.color = playerRankInfo.rankcolor; prefixSpan.style.fontWeight = 'bold'; prefixSpan.textContent = '[' + playerRankInfo.displayrank + '] ' + this.currentPlayer + ': '; }
-                                else { prefixSpan.textContent = this.currentPlayer + ': '; }
-                                const textSpan = document.createElement('span'); textSpan.textContent = val; msgLine.appendChild(prefixSpan); msgLine.appendChild(textSpan);
-                                const log = document.getElementById('chat-log'); log.appendChild(msgLine); log.scrollTop = log.scrollHeight; input.value = '';
-                            }
-                            input.blur();
-                        } else { input.focus(); }
-                    }
-                });
-
-                const animate = () => {
-                    requestAnimationFrame(animate);
-                    if (document.querySelector('canvas').style.display === 'block') {
-                        window.fpsCounter++; const time = performance.now();
-                        if (time >= window.lastFpsTime + 1000) { window.currentFpsDisplayValue = Math.round((window.fpsCounter * 1000) / (time - window.lastFpsTime)); window.fpsCounter = 0; window.lastFpsTime = time; }
-                        if (time >= window.lastCpsResetTime + 1000) { window.currentCpsDisplayValue = window.cpsCounter; window.cpsCounter = 0; window.lastCpsResetTime = time; }
-                        let metricsHTML = '';
-                        if(document.getElementById('set-fps').checked) metricsHTML += 'FPS: ' + window.currentFpsDisplayValue + '<br>';
-                        if(document.getElementById('set-tps').checked) metricsHTML += 'TPS: 20.0<br>';
-                        if(document.getElementById('set-ping').checked) metricsHTML += 'Ping: ' + Math.floor(Math.random() * 5 + 12) + 'ms<br>';
-                        if(document.getElementById('set-cps').checked) metricsHTML += 'CPS: ' + (window.currentCpsDisplayValue || 0);
-                        document.getElementById('metrics-panel').innerHTML = metricsHTML;
-                        this.controls.update(); this.renderer.render(this.scene, this.camera);
-                    }
-                };
-                animate();
-            }
-        });
-
-        if (window.game.currentPlayer !== "Guest") { window.game.loadDashboardProfileSetup(); }
-        window.addEventListener('resize', () => { if (window.game.isInitialized) { window.game.camera.aspect = window.innerWidth / window.innerHeight; window.game.camera.updateProjectionMatrix(); window.game.renderer.setSize(window.innerWidth, window.innerHeight); } });
-    </script>
-</body>
-</html>
